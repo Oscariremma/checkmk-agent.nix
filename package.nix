@@ -26,7 +26,7 @@
   findutils, # postfix among others
   iproute2, # section_lnx_if and section_tcp
   # section_lnx_if
-  lnxSupport ? false,
+  lnxSupport ? true,
   ethtool,
   # section_multipathing
   multipathSupport ? false,
@@ -52,9 +52,8 @@
   freeipmi,
   dmraidSupport ? false,
   dmraid,
-  storcliSupport ? false,
-  storcli,
   megaraidSupport ? false,
+  storcli,
   megacli,
   postfixSupport ? false,
   postfix,
@@ -202,9 +201,11 @@ stdenv.mkDerivation {
         ++ (lib.optionals ovsSupport [ openvswitch ])
         ++ (lib.optionals varnishSupport [ varnish ])
         ++ (lib.optionals postfixSupport [ postfix ])
-        ++ (lib.optionals megaraidSupport [ megacli ])
+        ++ (lib.optionals megaraidSupport [
+          megacli
+          storcli
+        ])
         ++ (lib.optionals ntpdSupport [ ntp ])
-        ++ (lib.optionals storcliSupport [ storcli ])
         ++ (lib.optionals dmraidSupport [ dmraid ])
         ++ (lib.optionals lnxSupport [ ethtool ])
         ++ (lib.optionals lvmSupport [ lvm2 ])
