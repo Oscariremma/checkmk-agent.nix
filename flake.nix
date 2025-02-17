@@ -13,6 +13,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
+      nixosModules.default = import ./module.nix { package = self.packages.${system}.checkmk-agent; };
       packages.${system}.checkmk-agent = pkgs.callPackage ./package.nix { useZibint = false; };
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = [ pkgs.rpmextract ];
