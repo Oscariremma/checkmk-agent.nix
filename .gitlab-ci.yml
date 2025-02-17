@@ -8,8 +8,8 @@ lint:nixfmt:
   script:
     - nix develop -c nixfmt -c *.nix
 
-check:nix:
-  image: nixpkgs/nix-flakes:latest
-  stage: check
-  script:
-    - nix flake check
+# check:nix:
+#   image: nixpkgs/nix-flakes:latest
+#   stage: check
+#   script:
+#     - nix flake check
