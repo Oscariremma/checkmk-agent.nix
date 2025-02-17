@@ -10,7 +10,7 @@ let
 in
 {
   options.services.cmk_agent = {
-    enable = lib.mkEnable "checkmk agent";
+    enable = lib.mkEnableOption "checkmk agent";
     package = lib.mkOption {
       type = lib.types.package;
       default = package;
