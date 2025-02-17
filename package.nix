@@ -166,7 +166,9 @@ stdenv.mkDerivation {
   '';
 
   preFixup = ''
-    wrapProgram $out/bin/cmk-agent-ctl --set PATH $out/bin
+    wrapProgram $out/bin/cmk-agent-ctl \
+      --set PATH $out/bin \
+      --set MK_CONFDIR /etc/check_mk
     wrapProgram $out/bin/mk-job \
     --set PATH ${
       lib.makeBinPath [
@@ -177,51 +179,52 @@ stdenv.mkDerivation {
     }:$out/bin
 
     wrapProgram $out/bin/check_mk_caching_agent \
-    --set PATH ${
-      lib.makeBinPath [
-        coreutils
-        util-linux
-      ]
-    }:$out/bin
-    wrapProgram $out/bin/check_mk_agent \
-    --set MK_LIBDIR ${toString lib_dir} \
-    --set MK_BIN $out \
-    --set PATH ${
-      lib.makeBinPath (
-        [
-          procps
+      --set PATH ${
+        lib.makeBinPath [
           coreutils
-          findutils
-          perl
-          systemd
-          python3
-          gnugrep
-          gawk
-          gnused
           util-linux
-          iproute2
         ]
-        ++ (lib.optionals encryptionSupport [ openssl ])
-        ++ (lib.optionals ipmiSupport [
-          ipmitool
-          freeipmi
-        ])
-        ++ (lib.optionals ovsSupport [ openvswitch ])
-        ++ (lib.optionals varnishSupport [ varnish ])
-        ++ (lib.optionals postfixSupport [ postfix ])
-        ++ (lib.optionals megaraidSupport [
-          megacli
-          storcli
-        ])
-        ++ (lib.optionals ntpdSupport [ ntp ])
-        ++ (lib.optionals dmraidSupport [ dmraid ])
-        ++ (lib.optionals lnxSupport [ ethtool ])
-        ++ (lib.optionals lvmSupport [ lvm2 ])
-        ++ (lib.optionals chronySupport [ chrony ])
-        ++ (lib.optionals multipathSupport [ multipath-tools ])
-        ++ (lib.optionals zfsSupport [ zfs ])
-      )
-    }:$out/bin
+      }:$out/bin
+    wrapProgram $out/bin/check_mk_agent \
+      --set MK_LIBDIR ${toString lib_dir} \
+      --set MK_BIN $out \
+      --set MK_CONFDIR /etc/check_mk \
+      --set PATH ${
+        lib.makeBinPath (
+          [
+            procps
+            coreutils
+            findutils
+            perl
+            systemd
+            python3
+            gnugrep
+            gawk
+            gnused
+            util-linux
+            iproute2
+          ]
+          ++ (lib.optionals encryptionSupport [ openssl ])
+          ++ (lib.optionals ipmiSupport [
+            ipmitool
+            freeipmi
+          ])
+          ++ (lib.optionals ovsSupport [ openvswitch ])
+          ++ (lib.optionals varnishSupport [ varnish ])
+          ++ (lib.optionals postfixSupport [ postfix ])
+          ++ (lib.optionals megaraidSupport [
+            megacli
+            storcli
+          ])
+          ++ (lib.optionals ntpdSupport [ ntp ])
+          ++ (lib.optionals dmraidSupport [ dmraid ])
+          ++ (lib.optionals lnxSupport [ ethtool ])
+          ++ (lib.optionals lvmSupport [ lvm2 ])
+          ++ (lib.optionals chronySupport [ chrony ])
+          ++ (lib.optionals multipathSupport [ multipath-tools ])
+          ++ (lib.optionals zfsSupport [ zfs ])
+        )
+      }:$out/bin
   '';
 
   meta = {

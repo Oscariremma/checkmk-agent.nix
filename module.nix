@@ -28,7 +28,7 @@ in
         cfg = {
           group = "cmk-agent";
           user = "cmk-agent";
-          mode = 700;
+          mode = "700";
         };
       in
       {
