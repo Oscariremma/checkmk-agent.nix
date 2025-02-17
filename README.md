@@ -14,6 +14,57 @@ The provided outputs are:
 The only supported platform is `x86_64-linux`.
 It should also work on other platforms however we currently don't have any testing setup for this.
 
+## Use with `mon.hlrn.de`
+
+> A prerequisite is a priviledged user account on `mon.zibint.hlrn.de`.
+
+1. Include the module and enable in your system config:
+
+```nix
+{
+  inputs = {
+    [... your inputs]
+    cmk_agent = {
+      url = "git+ssh://git@git.zib.de/hpc-s/checkmk-agent.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = { ..., cmk_agent, ... }: {
+      nixosConfigurations.your-system = nixpkgs.lib.nixosSystem {
+          modules = [
+            cmk_agent.nixosModules.default
+            ({ ... }: {
+              services.cmk_agent.enable = true;
+            })
+          ];
+      };
+  }
+}
+```
+
+If you also want to use `cmk-agent-ctl`, add:
+
+````nix
+{ config, ... }: {
+  environment.systemPackages = [ config.services.cmk_agent.package ];
+}
+```
+
+You should also open the TCP port `6556`, if you want to operate the agent in pull mode (this is what you usually want):
+
+```nix
+{ config, ... }: {
+  networking.firewall.interfaces.<interface>.allowedTCPPorts = [ 6556 ];
+}
+```
+
+2. Follow the steps in [the wiki after create host](https://wiki.zib.de/confluence/display/NHRADMIN/checkMK#checkMK-createhost).
+   For example (for `adm`): `cmk-agent-ctl register --server mon.adm.hlrn.de --site HPC --user agent_registration --hostname $(hostname -f)`
+
+
+[^1]: We use the raw edition, as such you cannot use `cmk-agent-ctl register-new`
+
 ## Optional checks
 
 The agent itself is a portable bash script.
@@ -40,3 +91,4 @@ The supported options are:
 - (untested) `ntpdSupport` (default: `false`): monitor [ntpd](https://en.wikipedia.org/wiki/Ntpd)
 
 _(untested)_: checks that have yet to be tested on a machine.
+````
