@@ -45,7 +45,7 @@ It should also work on other platforms however we currently don't have any testi
 
 If you also want to use `cmk-agent-ctl`, add:
 
-````nix
+```nix
 { config, ... }: {
   environment.systemPackages = [ config.services.cmk_agent.package ];
 }
@@ -61,7 +61,6 @@ You should also open the TCP port `6556`, if you want to operate the agent in pu
 
 2. Follow the steps in [the wiki after create host](https://wiki.zib.de/confluence/display/NHRADMIN/checkMK#checkMK-createhost).
    For example (for `adm`): `cmk-agent-ctl register --server mon.adm.hlrn.de --site HPC --user agent_registration --hostname $(hostname -f)`
-
 
 [^1]: We use the raw edition, as such you cannot use `cmk-agent-ctl register-new`
 
@@ -91,4 +90,3 @@ The supported options are:
 - (untested) `ntpdSupport` (default: `false`): monitor [ntpd](https://en.wikipedia.org/wiki/Ntpd)
 
 _(untested)_: checks that have yet to be tested on a machine.
-````
