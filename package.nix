@@ -168,6 +168,7 @@ stdenv.mkDerivation {
   preFixup = ''
     wrapProgram $out/bin/cmk-agent-ctl \
       --set PATH $out/bin \
+      --set MK_TMPDIR /tmp \
       --set MK_CONFDIR /etc/check_mk
     wrapProgram $out/bin/mk-job \
     --set PATH ${
@@ -189,6 +190,7 @@ stdenv.mkDerivation {
       --set MK_LIBDIR ${toString lib_dir} \
       --set MK_BIN $out \
       --set MK_CONFDIR /etc/check_mk \
+      --set MK_TMPDIR /tmp \
       --set PATH ${
         lib.makeBinPath (
           [
