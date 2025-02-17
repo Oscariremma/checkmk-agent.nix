@@ -31,6 +31,6 @@ in
     users.groups.cmk-agent = { };
 
     # create unit instance
-    systemd.services."check-mk-agent@main.service".enable = true;
+    systemd.services."check-mk-agent@main".enable = true;
   };
 }
