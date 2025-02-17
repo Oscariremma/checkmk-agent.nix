@@ -160,8 +160,6 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  # TODO: the checkmk-agent script expects to find itself in MK_BIN
-  # we cannot ref them from here however we could path this afterward, if required
   preFixup = ''
     wrapProgram $out/bin/mk-job \
     --set PATH ${
@@ -180,6 +178,7 @@ stdenv.mkDerivation {
     }
     wrapProgram $out/bin/check_mk_agent \
     --set MK_LIBDIR ${toString lib_dir} \
+    --set MK_BIN $out \
     --set PATH ${
       lib.makeBinPath (
         [
