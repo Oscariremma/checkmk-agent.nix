@@ -30,7 +30,7 @@ in
           };
         testScript = ''
           start_all()
-          server.succeed("cmk-agent-ctl status")
+          assert "inoperational" not in server.succeed("cmk-agent-ctl status")
         '';
       }
     )

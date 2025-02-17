@@ -47,7 +47,10 @@ in
     users.groups.cmk-agent = { };
 
     # create unit instance
-    systemd.services."check-mk-agent@main".enable = true;
-    systemd.sockets."check-mk-agent".enable = true;
+    systemd.services."check-mk-agent@".enable = true;
+    systemd.sockets."check-mk-agent" = {
+      enable = true;
+      wantedBy = [ "multi-user.target" ];
+    };
   };
 }

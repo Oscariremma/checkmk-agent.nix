@@ -40,7 +40,7 @@
   openssl,
   gawk,
   # optional stuff
-  zfsSupport ? true,
+  zfsSupport ? false,
   zfs,
   lvmSupport ? false,
   lvm2,
