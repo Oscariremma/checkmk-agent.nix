@@ -41,6 +41,7 @@ in
     users.users.cmk-agent = {
       packages = [ cfg.package ];
       isSystemUser = true;
+      createHome = true;
       group = "cmk-agent";
     };
     users.groups.cmk-agent = { };
