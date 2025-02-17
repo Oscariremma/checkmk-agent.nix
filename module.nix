@@ -20,5 +20,14 @@ in
 
   config = lib.mkIf cfg.enable {
     systemd.packages = [ cfg.package ];
+
+    users.users.cmk-agent = {
+      packages = [ cfg.package ];
+      isSystemUser = true;
+      group = "cmk-agent";
+    };
+    users.groups.cmk-agent = { };
+
+    systemd.services."check-mk-agent@main.service".enable = true;
   };
 }

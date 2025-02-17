@@ -3,6 +3,7 @@
   rpmextract,
   stdenv,
   makeWrapper,
+  gzip,
   lib,
   # wether to pull from upstream or mon.zibint.hlrn.de
   useZibint ? true,
@@ -112,6 +113,7 @@ stdenv.mkDerivation {
   # we need dpkg for unpacking the debian version
   nativeBuildInputs = [
     rpmextract
+    gzip
     makeWrapper
   ];
 
@@ -124,6 +126,7 @@ stdenv.mkDerivation {
         mkdir src
         cd src
         rpmextract $curSrc
+        gunzip var/lib/cmk-agent/cmk-agent-ctl.gz
         cd ..
       ''
     else
@@ -138,6 +141,7 @@ stdenv.mkDerivation {
         mkdir src
         cd src
         rpmextract ../check-mk-agent-${version}.noarch.rpm
+        gunzip var/lib/cmk-agent/cmk-agent-ctl.gz
         cd ..
       '';
   sourceRoot = "src";
@@ -146,20 +150,23 @@ stdenv.mkDerivation {
     runHook preInstall
 
     mkdir -p $out/bin $out/lib/systemd/system
-    cp usr/bin/* $out/bin
+    cp usr/bin/* var/lib/cmk-agent/cmk-agent-ctl $out/bin
+    chmod +x $out/bin/cmk-agent-ctl
 
     for cfg in var/lib/cmk-agent/scripts/super-server/0_systemd/*.{service,socket,fallback}; do
       substitute "$cfg" "$out/lib/systemd/system/$(basename $cfg)" \
-        --replace waitmax $out/bin/waitmax \
-        --replace check_mk_agent $out/bin/check_mk_agent \
-        --replace check_mk_caching_agent $out/bin/check_mk_caching_agent \
-        --replace mk-job $out/bin/mk-job
+        --replace /usr/bin/waitmax $out/bin/waitmax \
+        --replace /usr/bin/check_mk_agent $out/bin/check_mk_agent \
+        --replace /usr/bin/check_mk_caching_agent $out/bin/check_mk_caching_agent \
+        --replace /usr/bin/cmk-agent-ctl $out/bin/cmk-agent-ctl \
+        --replace /usr/bin/mk-job $out/bin/mk-job
     done
 
     runHook postInstall
   '';
 
   preFixup = ''
+    wrapProgram $out/bin/cmk-agent-ctl --set PATH $out/bin
     wrapProgram $out/bin/mk-job \
     --set PATH ${
       lib.makeBinPath [
@@ -167,14 +174,15 @@ stdenv.mkDerivation {
         gnugrep
         procps
       ]
-    }
+    }:$out/bin
+
     wrapProgram $out/bin/check_mk_caching_agent \
     --set PATH ${
       lib.makeBinPath [
         coreutils
         util-linux
       ]
-    }
+    }:$out/bin
     wrapProgram $out/bin/check_mk_agent \
     --set MK_LIBDIR ${toString lib_dir} \
     --set MK_BIN $out \
@@ -213,7 +221,7 @@ stdenv.mkDerivation {
         ++ (lib.optionals multipathSupport [ multipath-tools ])
         ++ (lib.optionals zfsSupport [ zfs ])
       )
-    }
+    }:$out/bin
   '';
 
   meta = {
