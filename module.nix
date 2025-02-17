@@ -41,12 +41,13 @@ in
     users.users.cmk-agent = {
       packages = [ cfg.package ];
       isSystemUser = true;
-      createHome = true;
+      home = "/var/lib/check_mk_agent";
       group = "cmk-agent";
     };
     users.groups.cmk-agent = { };
 
     # create unit instance
     systemd.services."check-mk-agent@main".enable = true;
+    systemd.sockets."check-mk-agent".enable = true;
   };
 }
