@@ -19,8 +19,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # import systemd units from package
     systemd.packages = [ cfg.package ];
 
+    # create mandatory user
     users.users.cmk-agent = {
       packages = [ cfg.package ];
       isSystemUser = true;
@@ -28,6 +30,7 @@ in
     };
     users.groups.cmk-agent = { };
 
+    # create unit instance
     systemd.services."check-mk-agent@main.service".enable = true;
   };
 }
