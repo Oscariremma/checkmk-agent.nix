@@ -1,4 +1,5 @@
-![nixpkgs version](https://img.shields.io/badge/nixpkgs-24.11-blue?logo=nixos)
+![nixpkgs version](https://img.shields.io/badge/nixpkgs-24.11-5277C3?logo=nixos)
+![checkmk version](https://img.shields.io/badge/CheckMK-2.3.0p26-15D1A0?logo=checkmk)
 
 # CheckMK agent
 
