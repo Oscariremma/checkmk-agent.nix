@@ -1,0 +1,15 @@
+stages:
+  - lint
+  - check
+
+lint:nixfmt:
+  image: nixpkgs/nix-flakes:latest
+  stage: lint
+  script:
+    - nix develop -c nixfmt -c *.nix
+
+check:nix:
+  image: nixpkgs/nix-flakes:latest
+  stage: check
+  script:
+    - nix flake check
