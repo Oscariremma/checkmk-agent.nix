@@ -153,6 +153,11 @@ stdenv.mkDerivation {
     cp usr/bin/* var/lib/cmk-agent/cmk-agent-ctl $out/bin
     chmod +x $out/bin/cmk-agent-ctl
 
+    ${lib.strings.optionalString postfixSupport ''
+      substitute "$out/bin/check_mk_agent" "$out/bin/check_mk_agent" \
+        --replace /usr/sbin/ssmtp ${postfix}
+    ''}
+
     for cfg in var/lib/cmk-agent/scripts/super-server/0_systemd/*.{service,socket,fallback}; do
       substitute "$cfg" "$out/lib/systemd/system/$(basename $cfg)" \
         --replace /usr/bin/waitmax $out/bin/waitmax \
