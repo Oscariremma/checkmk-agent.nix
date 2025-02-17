@@ -50,7 +50,10 @@ in
     systemd = {
       services = {
         "check-mk-agent@".enable = true;
-        cmk-agent-ctl-daemon.enable = true;
+        cmk-agent-ctl-daemon = {
+          enable = true;
+          wantedBy = [ "multi-user.target" ];
+        };
       };
       sockets.check-mk-agent = {
         enable = true;
