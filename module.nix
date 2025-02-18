@@ -46,15 +46,18 @@ in
     };
     users.groups.cmk-agent = { };
 
-    # create unit instance
+    # NOTE: the units still need to be enabled + installed
     systemd = {
       services = {
+        # socket activated template
         "check-mk-agent@".enable = true;
+        # main cmk-agent-ctl daemon service
         cmk-agent-ctl-daemon = {
           enable = true;
           wantedBy = [ "multi-user.target" ];
         };
       };
+      # socket for check-mk-agent@
       sockets.check-mk-agent = {
         enable = true;
         wantedBy = [ "multi-user.target" ];
