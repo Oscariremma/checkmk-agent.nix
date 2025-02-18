@@ -31,6 +31,7 @@ in
         testScript = ''
           start_all()
           assert "inoperational" not in server.succeed("cmk-agent-ctl status")
+          server.succeed("cmk-agent-ctl dump")
         '';
       }
     )
