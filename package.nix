@@ -128,11 +128,12 @@ stdenv.mkDerivation {
       mv opt/omd/versions/${major}.cre/share/check_mk/agents/check-mk-agent-${version}.noarch.rpm ..
       cd ..
       rm -rf tmp
+      export $curSrc=$(pwd)/check-mk-agent-${version}.noarch.rpm
     ''}
 
     mkdir src
     cd src
-    rpmextract ${if useZibint then "$curSrc" else "../check-mk-agent-${version}.noarch.rpm"}
+    rpmextract $curSrc
     gunzip var/lib/cmk-agent/cmk-agent-ctl.gz
     cd ..
   '';
