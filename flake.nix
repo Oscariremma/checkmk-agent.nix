@@ -15,7 +15,7 @@
     {
       nixosModules.default = import ./module.nix { package = self.packages.${system}.checkmk-agent; };
       checks.${system}.module = import ./test.nix { inherit pkgs self; };
-      packages.${system}.checkmk-agent = pkgs.callPackage ./package.nix { useZibint = false; };
+      packages.${system}.checkmk-agent = pkgs.callPackage ./package.nix { useZibint = true; };
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = [
           pkgs.rpmextract

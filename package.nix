@@ -120,30 +120,22 @@ stdenv.mkDerivation {
   dontBuild = true;
 
   # unpack rpm into distinct source root (`src`)
-  unpackCmd =
-    if useZibint then
-      ''
-        mkdir src
-        cd src
-        rpmextract $curSrc
-        gunzip var/lib/cmk-agent/cmk-agent-ctl.gz
-        cd ..
-      ''
-    else
-      ''
-        mkdir tmp
-        cd tmp
-        rpmextract $curSrc
-        mv opt/omd/versions/${major}.cre/share/check_mk/agents/check-mk-agent-${version}.noarch.rpm ..
-        cd ..
-        rm -rf tmp
+  unpackCmd = ''
+    ${lib.strings.optionalString (!useZibint) ''
+      mkdir tmp
+      cd tmp
+      rpmextract $curSrc
+      mv opt/omd/versions/${major}.cre/share/check_mk/agents/check-mk-agent-${version}.noarch.rpm ..
+      cd ..
+      rm -rf tmp
+    ''}
 
-        mkdir src
-        cd src
-        rpmextract ../check-mk-agent-${version}.noarch.rpm
-        gunzip var/lib/cmk-agent/cmk-agent-ctl.gz
-        cd ..
-      '';
+    mkdir src
+    cd src
+    rpmextract ${if useZibint then "$curSrc" else "../check-mk-agent-${version}.noarch.rpm"}
+    gunzip var/lib/cmk-agent/cmk-agent-ctl.gz
+    cd ..
+  '';
   sourceRoot = "src";
 
   installPhase = ''
