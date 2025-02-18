@@ -85,7 +85,7 @@ The supported options are:
 - `ipmiSupport` (default: `false`): monitor IPMI with `freeipmi` and `ipmitool`
 - (untested)`dmraidSupport` (default: `false`): monitor [device-mapper RAID](https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/dm-raid.html)
 - `megaraidSupport` (default: `false`): monitor MegaRaid with `storcli` and `megacli`
-- `postfixSupport` (default: `false`): monitor [postfix](https://www.postfix.org/postqueue.1.html) mailqueues
+- `postfixSupport` (default: `true`): monitor [postfix](https://www.postfix.org/postqueue.1.html) mailqueues
 - (untested)`varnishSupport` (default: `false`): monitor [varnish](https://varnish-cache.org/)
 - (untested) `ntpdSupport` (default: `false`): monitor [ntpd](https://en.wikipedia.org/wiki/Ntpd)
 

@@ -56,7 +56,7 @@
   megaraidSupport ? false,
   storcli,
   megacli,
-  postfixSupport ? false,
+  postfixSupport ? true,
   postfix,
   varnishSupport ? false,
   varnish,
