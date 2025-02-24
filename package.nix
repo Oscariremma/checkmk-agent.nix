@@ -5,8 +5,6 @@
   makeWrapper,
   gzip,
   lib,
-  # wether to pull from upstream or mon.zibint.hlrn.de
-  useZibint ? true,
   # derivations for `plugins`:
   # All executables in PLUGINSDIR will simply be executed and their
   # ouput appended to the output of the agent. Plugins define their own
@@ -94,21 +92,11 @@ stdenv.mkDerivation {
   inherit version;
 
   # fetch packaged agent, this allows us access to agent + systemd unit files in one archive
-  src =
-    if useZibint then
-      fetchurl {
-        url = "https://mon.zibint.hlrn.de/HPC/check_mk/agents/check-mk-agent-${version}.noarch.rpm";
-        hash = "sha256-ZK86ZIRpvPru5hzYnJfXuOo9QyAffVKAdnyuWSj0w70=";
-      }
-    else
-      # refer to https://checkmk.com/download?platform=cmk&distribution=redhat&release=el9&edition=cre
-      fetchurl {
-        url = "https://download.checkmk.com/checkmk/${major}/check-mk-raw-${major}-el9-38.x86_64.rpm";
-        hash = "sha256-URRWQ4BQ+oOYvLcuKQ043cAjOYCcEL1f9khCcPuZ8UE=";
-      };
-
-  # remote builds are not recommended, we need zibint
-  preferLocalBuild = useZibint;
+  # refer to https://checkmk.com/download?platform=cmk&distribution=redhat&release=el9&edition=cre
+  src = fetchurl {
+    url = "https://download.checkmk.com/checkmk/${major}/check-mk-raw-${major}-el9-38.x86_64.rpm";
+    hash = "sha256-URRWQ4BQ+oOYvLcuKQ043cAjOYCcEL1f9khCcPuZ8UE=";
+  };
 
   # we need dpkg for unpacking the debian version
   nativeBuildInputs = [
@@ -121,19 +109,16 @@ stdenv.mkDerivation {
 
   # unpack rpm into distinct source root (`src`)
   unpackCmd = ''
-    ${lib.strings.optionalString (!useZibint) ''
-      mkdir tmp
-      cd tmp
-      rpmextract $curSrc
-      mv opt/omd/versions/${major}.cre/share/check_mk/agents/check-mk-agent-${version}.noarch.rpm ..
-      cd ..
-      rm -rf tmp
-      export $curSrc=$(pwd)/check-mk-agent-${version}.noarch.rpm
-    ''}
+    mkdir tmp
+    cd tmp
+    rpmextract $curSrc
+    mv opt/omd/versions/${major}.cre/share/check_mk/agents/check-mk-agent-${version}.noarch.rpm ..
+    cd ..
+    rm -rf tmp
 
     mkdir src
     cd src
-    rpmextract $curSrc
+    rpmextract ../check-mk-agent-${version}.noarch.rpm
     gunzip var/lib/cmk-agent/cmk-agent-ctl.gz
     cd ..
   '';
