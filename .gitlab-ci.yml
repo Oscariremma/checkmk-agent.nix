@@ -18,10 +18,9 @@ check:nix:
   image: nixpkgs/nix-flakes:latest
   stage: check
   script:
-    - nix build .#checkmk-agent -L
-
-# check:nix:
-#   image: nixpkgs/nix-flakes:latest
-#   stage: check
-#   script:
-#     - nix flake check
+    - nix build .#checkmk-agent
+    - nix flake check
+    - nix log .#checkmk-agent &> build-log.txt
+  artifacts:
+    paths:
+      - build-log.txt
