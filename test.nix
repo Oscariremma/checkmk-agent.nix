@@ -17,11 +17,7 @@ in
       {
         name = "";
         nodes.server =
-          {
-            config,
-            pkgs,
-            ...
-          }:
+          { config, ... }:
           {
             imports = [ self.nixosModules.default ];
 

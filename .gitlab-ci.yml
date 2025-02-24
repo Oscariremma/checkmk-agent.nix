@@ -8,7 +8,7 @@ lint:nixfmt:
   script:
     - nix develop -c nixfmt -c *.nix
 
-lint:nixfmt:
+lint:deadnix:
   image: nixpkgs/nix-flakes:latest
   stage: lint
   script:
@@ -16,7 +16,7 @@ lint:nixfmt:
 
 check:nix:
   image: nixpkgs/nix-flakes:latest
-  stage: lint
+  stage: check
   script:
     - nix build .#checkmk-agent -L
 

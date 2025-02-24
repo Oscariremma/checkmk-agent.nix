@@ -1,10 +1,5 @@
 { package }:
-{
-  pkgs,
-  config,
-  lib,
-  ...
-}:
+{ config, lib, ... }:
 let
   cfg = config.services.cmk_agent;
 in
