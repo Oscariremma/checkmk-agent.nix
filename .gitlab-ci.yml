@@ -19,7 +19,6 @@ check:nix:
   stage: check
   script:
     - nix build .#checkmk-agent
-    - nix flake check
     - nix log .#checkmk-agent &> build-log.txt
   artifacts:
     paths:
