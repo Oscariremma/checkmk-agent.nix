@@ -44,7 +44,7 @@
   lvm2,
   ovsSupport ? false,
   openvswitch,
-  chronySupport ? false,
+  chronySupport ? true,
   chrony,
   ipmiSupport ? false,
   ipmitool,
@@ -62,7 +62,7 @@
   ntp,
 }:
 let
-  major = "2.3.0p26";
+  major = "2.4.0p1";
   patch = "-1";
   version = major + patch;
 
@@ -95,7 +95,7 @@ stdenv.mkDerivation {
   # refer to https://checkmk.com/download?platform=cmk&distribution=redhat&release=el9&edition=cre
   src = fetchurl {
     url = "https://download.checkmk.com/checkmk/${major}/check-mk-raw-${major}-el9-38.x86_64.rpm";
-    hash = "sha256-URRWQ4BQ+oOYvLcuKQ043cAjOYCcEL1f9khCcPuZ8UE=";
+    hash = "sha256-xGRE0K01T6YGvGkhzhufcF7bEfkMH1PBRDHlMPIi9MM=";
   };
 
   # we need dpkg for unpacking the debian version
