@@ -5,6 +5,7 @@
   makeWrapper,
   gzip,
   lib,
+  breakpointHook,
   # derivations for `plugins`:
   # All executables in PLUGINSDIR will simply be executed and their
   # ouput appended to the output of the agent. Plugins define their own
@@ -62,7 +63,7 @@
   ntp,
 }:
 let
-  major = "2.4.0p1";
+  major = "2.4.0p12";
   patch = "-1";
   version = major + patch;
 
@@ -95,11 +96,12 @@ stdenv.mkDerivation {
   # refer to https://checkmk.com/download?platform=cmk&distribution=redhat&release=el9&edition=cre
   src = fetchurl {
     url = "https://download.checkmk.com/checkmk/${major}/check-mk-raw-${major}-el9-38.x86_64.rpm";
-    hash = "sha256-xGRE0K01T6YGvGkhzhufcF7bEfkMH1PBRDHlMPIi9MM=";
+    hash = "sha256-/E3ueempOW2P2GaSBR/N8iMnBLY/q8obR/V/oY45baQ=";
   };
 
   # we need dpkg for unpacking the debian version
   nativeBuildInputs = [
+    breakpointHook
     rpmextract
     gzip
     makeWrapper
