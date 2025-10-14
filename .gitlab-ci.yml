@@ -1,21 +1,23 @@
+default:
+  image: nixpkgs/nix-flakes:latest
+  tags:
+    - nixos
+
 stages:
   - lint
   - check
 
 lint:nixfmt:
-  image: nixpkgs/nix-flakes:latest
   stage: lint
   script:
     - nix develop -c nixfmt -c *.nix
 
 lint:deadnix:
-  image: nixpkgs/nix-flakes:latest
   stage: lint
   script:
     - nix develop -c deadnix -f .
 
 check:nix:
-  image: nixpkgs/nix-flakes:latest
   stage: check
   script:
     - nix build .#checkmk-agent
