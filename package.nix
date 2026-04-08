@@ -219,6 +219,6 @@ stdenv.mkDerivation {
   meta = {
     description = "compat build of packaged checkmk agent";
     homepage = "https://mon.zibint.hlrn.de/HPC/check_mk";
-    maintainers = [ lib.maintainers.cobalt ];
+    maintainers = [ ];
   };
 }
