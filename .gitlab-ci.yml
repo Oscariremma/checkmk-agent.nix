@@ -17,6 +17,11 @@ lint:deadnix:
   script:
     - nix develop -c deadnix -f .
 
+lint:statix:
+  stage: lint
+  script:
+    - nix develop -c statix check .
+
 check:nix:
   stage: check
   script:

@@ -19,6 +19,7 @@
           pkgs.rpmextract
           pkgs.deadnix
           pkgs.nixfmt-rfc-style
+          pkgs.statix
         ];
       };
     };
