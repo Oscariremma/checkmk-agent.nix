@@ -63,7 +63,7 @@
   ntp,
 }:
 let
-  major = "2.4.0p12";
+  major = "2.4.0p25";
   patch = "-1";
   version = major + patch;
 
@@ -96,7 +96,7 @@ stdenv.mkDerivation {
   # refer to https://checkmk.com/download?platform=cmk&distribution=redhat&release=el9&edition=cre
   src = fetchurl {
     url = "https://download.checkmk.com/checkmk/${major}/check-mk-raw-${major}-el9-38.x86_64.rpm";
-    hash = "sha256-/E3ueempOW2P2GaSBR/N8iMnBLY/q8obR/V/oY45baQ=";
+    hash = "sha256-0aEIpmN3m3/x7HbsIcmSs9Xj2vnZbljjWsuzO2/XpW4=";
   };
 
   # we need dpkg for unpacking the debian version
