@@ -22,7 +22,3 @@ check:nix:
   script:
     - nix build .#checkmk-agent
     - nix flake check -L
-    - nix log .#checkmk-agent &> build-log.txt
-  artifacts:
-    paths:
-      - build-log.txt
