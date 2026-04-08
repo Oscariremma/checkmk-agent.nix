@@ -14,35 +14,37 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # import systemd units from package
-    systemd.packages = [ cfg.package ];
-
-    # setup dirs for data
-    systemd.tmpfiles.settings."10-checkmk" =
-      let
-        cfg = {
-          group = "cmk-agent";
-          user = "cmk-agent";
-          mode = "700";
-        };
-      in
-      {
-        "/var/lib/check_mk_agent".d = cfg;
-        "/var/lib/check_mk_agent/spool".d = cfg;
-        "/etc/check_mk".d = cfg;
-      };
-
     # create mandatory user
-    users.users.cmk-agent = {
-      packages = [ cfg.package ];
-      isSystemUser = true;
-      home = "/var/lib/check_mk_agent";
-      group = "cmk-agent";
+    users = {
+      users.cmk-agent = {
+        packages = [ cfg.package ];
+        isSystemUser = true;
+        home = "/var/lib/check_mk_agent";
+        group = "cmk-agent";
+      };
+      groups.cmk-agent = { };
     };
-    users.groups.cmk-agent = { };
 
-    # NOTE: the units still need to be enabled + installed
     systemd = {
+      # import systemd units from package
+      packages = [ cfg.package ];
+
+      # setup dirs for data
+      tmpfiles.settings."10-checkmk" =
+        let
+          cfg = {
+            group = "cmk-agent";
+            user = "cmk-agent";
+            mode = "700";
+          };
+        in
+        {
+          "/var/lib/check_mk_agent".d = cfg;
+          "/var/lib/check_mk_agent/spool".d = cfg;
+          "/etc/check_mk".d = cfg;
+        };
+
+      # NOTE: the units still need to be enabled + installed
       services = {
         # socket activated template
         "check-mk-agent@".enable = true;

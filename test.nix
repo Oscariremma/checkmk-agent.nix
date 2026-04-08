@@ -12,24 +12,21 @@ in
   # This is useful for referencing modules or packages from your own flake
   # as well as importing from other flakes.
   imports = [
-    (
-      { ... }:
-      {
-        name = "";
-        nodes.server =
-          { config, ... }:
-          {
-            imports = [ self.nixosModules.default ];
+    (_: {
+      name = "";
+      nodes.server =
+        { config, ... }:
+        {
+          imports = [ self.nixosModules.default ];
 
-            services.cmk_agent.enable = true;
-            environment.systemPackages = [ config.services.cmk_agent.package ];
-          };
-        testScript = ''
-          start_all()
-          assert "inoperational" not in server.succeed("cmk-agent-ctl status")
-          server.succeed("cmk-agent-ctl dump")
-        '';
-      }
-    )
+          services.cmk_agent.enable = true;
+          environment.systemPackages = [ config.services.cmk_agent.package ];
+        };
+      testScript = ''
+        start_all()
+        assert "inoperational" not in server.succeed("cmk-agent-ctl status")
+        server.succeed("cmk-agent-ctl dump")
+      '';
+    })
   ];
 }).config.result

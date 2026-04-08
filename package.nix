@@ -8,11 +8,11 @@
   breakpointHook,
   # derivations for `plugins`:
   # All executables in PLUGINSDIR will simply be executed and their
-  # ouput appended to the output of the agent. Plugins define their own
+  # output appended to the output of the agent. Plugins define their own
   # sections and must output headers with '<<<' and '>>>'
   plugins ? [ ],
   # derivations for `local`:
-  # All executables in LOCALDIR will by executabled and their
+  # All executables in LOCALDIR will by executables and their
   # output inserted into the section <<<local>>>. Please
   # refer to online documentation for details about local checks.
   local ? [ ],
@@ -68,10 +68,9 @@ let
   version = major + patch;
 
   # generate commands to copy all binaries from `packages` into `out`
-  copyBinaries = (
+  copyBinaries =
     packages: out:
-    lib.strings.concatMapStringsSep "\n" (p: ''cp ${lib.attrsets.getBin p}/* "${out}"'') packages
-  );
+    lib.strings.concatMapStringsSep "\n" (p: ''cp ${lib.attrsets.getBin p}/* "${out}"'') packages;
 
   # equivalent of packages plugins/local scripts
   lib_dir = stdenv.mkDerivation {
