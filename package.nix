@@ -63,7 +63,7 @@
   ntp,
 }:
 let
-  major = "2.4.0p25";
+  major = "2.5.0p4";
   patch = "-1";
   version = major + patch;
 
@@ -94,8 +94,8 @@ stdenv.mkDerivation {
   # fetch packaged agent, this allows us access to agent + systemd unit files in one archive
   # refer to https://checkmk.com/download?platform=cmk&distribution=redhat&release=el9&edition=cre
   src = fetchurl {
-    url = "https://download.checkmk.com/checkmk/${major}/check-mk-raw-${major}-el9-38.x86_64.rpm";
-    hash = "sha256-0aEIpmN3m3/x7HbsIcmSs9Xj2vnZbljjWsuzO2/XpW4=";
+    url = "https://download.checkmk.com/checkmk/${major}/check-mk-community-${major}-el9-38.x86_64.rpm";
+    hash = "sha256-DZtj1js4rqs+G1PqhN6OFn43xw2hDkynyAJ6FhfDXJc=";
   };
 
   # we need dpkg for unpacking the debian version
@@ -113,7 +113,7 @@ stdenv.mkDerivation {
     mkdir tmp
     cd tmp
     rpmextract $curSrc
-    mv opt/omd/versions/${major}.cre/share/check_mk/agents/check-mk-agent-${version}.noarch.rpm ..
+    mv opt/omd/versions/${major}.community/share/check_mk/agents/check-mk-agent-${version}.noarch.rpm ..
     cd ..
     rm -rf tmp
 
@@ -155,6 +155,7 @@ stdenv.mkDerivation {
       --set MK_TMPDIR /tmp \
       --set MK_VARDIR /var/lib/check_mk_agent \
       --set MK_CONFDIR /etc/check_mk
+
     wrapProgram $out/bin/mk-job \
     --set PATH ${
       lib.makeBinPath [
