@@ -13,7 +13,13 @@
     {
       nixosModules.default = import ./module.nix { package = self.packages.${system}.checkmk-agent; };
       checks.${system}.module = import ./test.nix { inherit pkgs self; };
-      packages.${system}.checkmk-agent = pkgs.callPackage ./package.nix { };
+
+      packages.${system} = rec {
+        default = checkmk-agent;
+        checkmk-agent = pkgs.callPackage ./package.nix { };
+        ckeckmk-agent-from-source = pkgs.callPackage ./package-rust.nix { };
+      };
+
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = [
           pkgs.rpmextract
