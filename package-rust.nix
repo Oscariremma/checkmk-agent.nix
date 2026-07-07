@@ -221,6 +221,7 @@ rustPlatform.buildRustPackage (finalAttrs: rec {
     homepage = "https://github.com/Checkmk/checkmk";
     changelog = "https://github.com/Checkmk/checkmk/blob/${finalAttrs.src.rev}/CHANGES";
     license = lib.licenses.gpl2;
+    platforms = lib.platforms.linux;
     maintainers = with lib.maintainers; [ weriomat ];
     mainProgram = "cmk-agent-ctl";
   };
