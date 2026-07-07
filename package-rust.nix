@@ -6,13 +6,13 @@
   pkg-config,
   makeWrapper,
 
-  # derivations for `plugins`:
+  # Derivations for `plugins`:
   # All executables in PLUGINSDIR will simply be executed and their
   # output appended to the output of the agent. Plugins define their own
   # sections and must output headers with '<<<' and '>>>'
   plugins ? [ ],
 
-  # derivations for `local`:
+  # Derivations for `local`:
   # All executables in LOCALDIR will by executables and their
   # output inserted into the section <<<local>>>. Please
   # refer to online documentation for details about local checks.
@@ -72,14 +72,14 @@ let
     hash = "sha256-mjyBwiuEboglxFi8OSBl0hw4ZnwDOtYO73APGm54zQI=";
   };
 
-  # generate commands to symlink all binaries from `packages` (toplevel as well as ones located in `bin`) into `out`
+  # Generate commands to symlink all binaries from `packages` (toplevel as well as ones located in `bin`) into `out`
   linkBinaries =
     packages: out:
     lib.strings.concatMapStringsSep "\n" (
       p: ''ln -s ${lib.attrsets.getBin p}/{*,bin/*} "${out}"''
     ) packages;
 
-  # equivalent of packages plugins/local scripts
+  # Equivalent of packages plugins/local scripts
   lib_dir = stdenv.mkDerivation {
     pname = "checkmk-agent-lib";
     inherit version;
