@@ -120,6 +120,7 @@ rustPlatform.buildRustPackage (finalAttrs: rec {
     pushd ../../..
 
     for bin in agents/{*.linux,waitmax,mk-job}; do
+        patchShebangs "$bin"
         install -D -m 0555 "$bin" "$out/bin/$(basename $bin .linux)"
     done
 
