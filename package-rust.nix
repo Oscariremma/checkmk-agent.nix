@@ -1,10 +1,9 @@
 {
   lib,
   stdenv,
-  rustPlatform,
   fetchFromGitHub,
-  pkg-config,
   makeWrapper,
+  callPackage,
 
   # Derivations for `plugins`:
   # All executables in PLUGINSDIR will simply be executed and their
@@ -91,38 +90,115 @@ let
       mkdir -p "$out/plugins" "$out/local"
       ${linkBinaries plugins "$out/plugins"}
       ${linkBinaries local "$out/local"}
-
     '';
   };
 
+  cmk-agent-ctl =
+    {
+      lib,
+      rustPlatform,
+      pkg-config,
+      perl,
+      openssl,
+      ...
+    }:
+    rustPlatform.buildRustPackage (finalAttrs: rec {
+      pname = "cmk-agent-ctl";
+      inherit version src;
+
+      sourceRoot = "${src.name}/requirements/rust/host";
+
+      cargoHash = "sha256-BHRRp2ZVvD/+9ldaSyibDHn3Yxhco5ZgWpGaRjHSgOQ=";
+
+      nativeBuildInputs = [
+        pkg-config
+        perl
+        rustPlatform.bindgenHook
+      ];
+
+      buildInputs = [ openssl ];
+
+      doCheck = false;
+
+      env = {
+        OPENSSL_DIR = "${openssl.dev}";
+        OPENSSL_LIB_DIR = "${openssl.out}/lib";
+        OPENSSL_INCLUDE_DIR = "${openssl.dev}/include";
+        PKG_CONFIG_ALLOW_CROSS = "1";
+      };
+
+      meta = {
+        description = "Checkmk - Best-in-class infrastructure & application monitoring";
+        homepage = "https://github.com/Checkmk/checkmk";
+        changelog = "https://github.com/Checkmk/checkmk/blob/${finalAttrs.src.rev}/CHANGES";
+        license = lib.licenses.gpl2;
+        platforms = lib.platforms.linux;
+        maintainers = with lib.maintainers; [ weriomat ];
+        mainProgram = "cmk-agent-ctl";
+      };
+    });
+
+  agent = callPackage cmk-agent-ctl { };
+
+  waitmax-build =
+    { stdenv, ... }:
+    stdenv.mkDerivation {
+      pname = "waitmax";
+      inherit version src;
+
+      buildPhase = ''
+        runHook preBuild
+
+        $CC -s -Wall -Wextra -O3 -o waitmax agents/waitmax.c
+
+        runHook postBuild
+      '';
+
+      installPhase = ''
+        runHook preInstall
+
+        mkdir -p $out/bin
+        install -D -m 0555 waitmax $out/bin
+
+        runHook postInstall
+      '';
+
+      meta = {
+        mainProgram = "waitmax";
+        platforms = lib.platforms.linux;
+
+        inherit (agent.meta)
+          description
+          homepage
+          changelog
+          license
+          maintainers
+          ;
+      };
+    };
+
+  waitmax = callPackage waitmax-build { };
 in
-rustPlatform.buildRustPackage (finalAttrs: rec {
+stdenv.mkDerivation {
   pname = "checkmk-agent";
   inherit version src;
 
-  sourceRoot = "${src.name}/requirements/rust/host";
+  nativeBuildInputs = [ makeWrapper ];
 
-  cargoHash = "sha256-BHRRp2ZVvD/+9ldaSyibDHn3Yxhco5ZgWpGaRjHSgOQ=";
+  buildPhase = ''
+    runHook preBuild
 
-  nativeBuildInputs = [
-    pkg-config
-    perl
-    rustPlatform.bindgenHook
-    makeWrapper
-  ];
-
-  buildInputs = [ openssl ];
-
-
-  postInstall = ''
     mkdir -p $out/lib/systemd/system
 
-    pushd ../../..
-
     for bin in agents/{*.linux,waitmax,mk-job}; do
-        patchShebangs "$bin"
         install -D -m 0555 "$bin" "$out/bin/$(basename $bin .linux)"
     done
+
+    install -D -m 0555 ${lib.getExe agent} "$out/bin"
+
+    ${lib.strings.optionalString stdenv.hostPlatform.isLinux ''
+      install -D -m 0555 ${lib.getExe waitmax} "$out/bin"
+    ''}
 
     ${lib.strings.optionalString postfixSupport ''
       substituteInPlace "$out/bin/check_mk_agent" --replace-fail /usr/sbin/ssmtp ${postfix}
@@ -130,17 +206,17 @@ rustPlatform.buildRustPackage (finalAttrs: rec {
 
     for cfg in agents/scripts/super-server/0_systemd/*.{service,socket,fallback}; do
       substitute "$cfg" "$out/lib/systemd/system/$(basename $cfg)" \
-        --replace-quiet /usr/bin/waitmax $out/bin/waitmax \
         --replace-quiet /usr/bin/check_mk_agent $out/bin/check_mk_agent \
         --replace-quiet /usr/bin/check_mk_caching_agent $out/bin/check_mk_caching_agent \
         --replace-quiet /usr/bin/cmk-agent-ctl $out/bin/cmk-agent-ctl \
         --replace-quiet /usr/bin/mk-job $out/bin/mk-job
+
+      ${lib.strings.optionalString stdenv.hostPlatform.isLinux ''
+        substituteInPlace "$out/lib/systemd/system/$(basename $cfg)" \
+          --replace-quiet /usr/bin/waitmax $out/bin/waitmax
+      ''}
     done
 
-    popd
-  '';
-
-  preFixup = ''
     wrapProgram $out/bin/cmk-agent-ctl \
       --set PATH $out/bin \
       --set MK_TMPDIR /tmp \
@@ -206,24 +282,9 @@ rustPlatform.buildRustPackage (finalAttrs: rec {
           ++ lib.optional zfsSupport zfs
         )
       }:$out/bin
+
+    runHook postBuild
   '';
 
-  doCheck = false;
-
-  env = {
-    OPENSSL_DIR = "${openssl.dev}";
-    OPENSSL_LIB_DIR = "${openssl.out}/lib";
-    OPENSSL_INCLUDE_DIR = "${openssl.dev}/include";
-    PKG_CONFIG_ALLOW_CROSS = "1";
-  };
-
-  meta = {
-    description = "Checkmk - Best-in-class infrastructure & application monitoring";
-    homepage = "https://github.com/Checkmk/checkmk";
-    changelog = "https://github.com/Checkmk/checkmk/blob/${finalAttrs.src.rev}/CHANGES";
-    license = lib.licenses.gpl2;
-    platforms = lib.platforms.linux;
-    maintainers = with lib.maintainers; [ weriomat ];
-    mainProgram = "cmk-agent-ctl";
-  };
-})
+  inherit (agent) meta;
+}
