@@ -87,9 +87,13 @@ let
     dontBuild = true;
 
     installPhase = ''
+      runHook preInstall
+
       mkdir -p "$out/plugins" "$out/local"
       ${linkBinaries plugins "$out/plugins"}
       ${linkBinaries local "$out/local"}
+
+      runHook postInstall
     '';
   };
 
