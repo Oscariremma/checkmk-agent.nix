@@ -24,7 +24,7 @@
         buildInputs = [
           pkgs.rpmextract
           pkgs.deadnix
-          pkgs.nixfmt-rfc-style
+          pkgs.nixfmt
           pkgs.statix
         ];
       };
