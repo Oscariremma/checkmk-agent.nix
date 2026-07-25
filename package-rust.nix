@@ -222,13 +222,13 @@ stdenv.mkDerivation {
       --set MK_CONFDIR /etc/check_mk
 
     wrapProgram $out/bin/mk-job \
-    --set PATH ${
-      lib.makeBinPath [
-        coreutils
-        gnugrep
-        procps
-      ]
-    }:$out/bin
+      --set PATH ${
+        lib.makeBinPath [
+          coreutils
+          gnugrep
+          procps
+        ]
+      }:$out/bin
 
     wrapProgram $out/bin/check_mk_caching_agent \
       --set PATH ${
