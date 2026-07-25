@@ -194,7 +194,7 @@ stdenv.mkDerivation {
 
     mkdir -p $out/lib/systemd/system
 
-    for bin in agents/{*.linux,waitmax,mk-job}; do
+    for bin in agents/{*.linux,mk-job}; do
         install -D -m 0555 "$bin" "$out/bin/$(basename $bin .linux)"
     done
 
