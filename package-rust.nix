@@ -75,7 +75,7 @@ let
   linkBinaries =
     packages: out:
     lib.strings.concatMapStringsSep "\n" (
-      p: ''ln -s ${lib.attrsets.getBin p}/{*,bin/*} "${out}"''
+      p: ''cp ${lib.attrsets.getBin p}/{*,bin/*} "${out}"''
     ) packages;
 
   # Equivalent of packages plugins/local scripts
