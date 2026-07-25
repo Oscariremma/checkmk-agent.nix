@@ -169,10 +169,10 @@ let
 
       meta = {
         mainProgram = "waitmax";
-        platforms = lib.platforms.linux;
 
         inherit (agent.meta)
           description
+          platforms
           homepage
           changelog
           license
@@ -199,10 +199,7 @@ stdenv.mkDerivation {
     done
 
     install -D -m 0555 ${lib.getExe agent} "$out/bin"
-
-    ${lib.strings.optionalString stdenv.hostPlatform.isLinux ''
-      install -D -m 0555 ${lib.getExe waitmax} "$out/bin"
-    ''}
+    install -D -m 0555 ${lib.getExe waitmax} "$out/bin"
 
     ${lib.strings.optionalString postfixSupport ''
       substituteInPlace "$out/bin/check_mk_agent" --replace-fail /usr/sbin/ssmtp ${postfix}
@@ -210,15 +207,12 @@ stdenv.mkDerivation {
 
     for cfg in agents/scripts/super-server/0_systemd/*.{service,socket,fallback}; do
       substitute "$cfg" "$out/lib/systemd/system/$(basename $cfg)" \
+        --replace-quiet /usr/bin/waitmax $out/bin/waitmax \
         --replace-quiet /usr/bin/check_mk_agent $out/bin/check_mk_agent \
         --replace-quiet /usr/bin/check_mk_caching_agent $out/bin/check_mk_caching_agent \
         --replace-quiet /usr/bin/cmk-agent-ctl $out/bin/cmk-agent-ctl \
         --replace-quiet /usr/bin/mk-job $out/bin/mk-job
 
-      ${lib.strings.optionalString stdenv.hostPlatform.isLinux ''
-        substituteInPlace "$out/lib/systemd/system/$(basename $cfg)" \
-          --replace-quiet /usr/bin/waitmax $out/bin/waitmax
-      ''}
     done
 
     wrapProgram $out/bin/cmk-agent-ctl \
