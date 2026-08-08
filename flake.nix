@@ -12,7 +12,10 @@
     in
     {
       nixosModules.default = import ./module.nix { package = self.packages.${system}.checkmk-agent; };
-      checks.${system}.module = import ./test.nix { inherit pkgs self; };
+      checks.${system} = {
+        module = import ./test.nix { inherit pkgs self; };
+        plugins = import ./test2.nix { inherit self pkgs; };
+      };
 
       packages.${system} = rec {
         default = checkmk-agent;
