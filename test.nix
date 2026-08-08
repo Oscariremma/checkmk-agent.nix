@@ -13,14 +13,14 @@ in
   # as well as importing from other flakes.
   imports = [
     (_: {
-      name = "";
+      name = "checkmk-agent";
       nodes.server =
         { config, ... }:
         {
           imports = [ self.nixosModules.default ];
 
-          services.checkmk_agent.enable = true;
-          environment.systemPackages = [ config.services.checkmk_agent.package ];
+          services.checkmk-agent.enable = true;
+          environment.systemPackages = [ config.services.checkmk-agent.package ];
         };
       testScript = ''
         start_all()

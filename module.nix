@@ -1,7 +1,7 @@
 { package }:
 { config, lib, ... }:
 let
-  cfg = config.services.checkmk_agent;
+  cfg = config.services.checkmk-agent;
 in
 {
   options.services.checkmk-agent = {
