@@ -19,8 +19,8 @@ in
         {
           imports = [ self.nixosModules.default ];
 
-          services.cmk_agent.enable = true;
-          environment.systemPackages = [ config.services.cmk_agent.package ];
+          services.checkmk_agent.enable = true;
+          environment.systemPackages = [ config.services.checkmk_agent.package ];
         };
       testScript = ''
         start_all()
