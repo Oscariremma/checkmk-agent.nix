@@ -25,7 +25,8 @@ in
       testScript = ''
         start_all()
         assert "inoperational" not in server.succeed("cmk-agent-ctl status")
-        server.succeed("cmk-agent-ctl dump")
+        dump = server.succeed("cmk-agent-ctl dump")
+        assert "<<<check_mk>>>" in dump, "dump output is missing <<<check_mk>>> marker"
       '';
     })
   ];

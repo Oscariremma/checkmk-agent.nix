@@ -17,7 +17,7 @@
       packages.${system} = rec {
         default = checkmk-agent;
         checkmk-agent = pkgs.callPackage ./package.nix { };
-        ckeckmk-agent-from-source = pkgs.callPackage ./package-rust.nix { };
+        checkmk-agent-from-source = pkgs.callPackage ./package-rust.nix { };
       };
 
       devShells.${system}.default = pkgs.mkShell {
