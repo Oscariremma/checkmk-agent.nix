@@ -19,7 +19,7 @@
       };
 
       checks.${system} = {
-        module = import ./test.nix { inherit pkgs self; };
+        package = import ./test.nix { inherit pkgs self; };
         package-module = import ./test-module.nix { inherit pkgs self; };
         plugins = import ./test2.nix { inherit self pkgs; };
         plugins-module = import ./test2-module.nix { inherit self pkgs; };
