@@ -1,6 +1,6 @@
 {
-  lib,
   stdenv,
+  lib,
   fetchFromGitHub,
   makeWrapper,
   callPackage,
@@ -17,6 +17,7 @@
   # refer to online documentation for details about local checks.
   local ? [ ],
 
+  bash,
   systemd,
   procps,
   util-linux,
@@ -25,27 +26,22 @@
   coreutils,
   findutils,
   iproute2,
-
   lnxSupport ? true,
   ethtool,
-
   multipathSupport ? false,
   multipath-tools,
-
   gnused,
   python3,
   encryptionSupport ? true,
   openssl,
   gawk,
-
-  # optional stuff
   zfsSupport ? false,
   zfs,
   lvmSupport ? false,
   lvm2,
   ovsSupport ? false,
   openvswitch,
-  chronySupport ? true,
+  chronySupport ? false,
   chrony,
   ipmiSupport ? false,
   ipmitool,
@@ -97,7 +93,7 @@ let
     '';
   };
 
-  cmk-agent-ctl =
+  cmk-agent-ctl = callPackage (
     {
       lib,
       rustPlatform,
@@ -109,6 +105,9 @@ let
     rustPlatform.buildRustPackage (finalAttrs: rec {
       pname = "cmk-agent-ctl";
       inherit version src;
+
+      strictDeps = true;
+      __structuredAttrs = true;
 
       sourceRoot = "${src.name}/requirements/rust/host";
 
@@ -140,15 +139,17 @@ let
         maintainers = with lib.maintainers; [ weriomat ];
         mainProgram = "cmk-agent-ctl";
       };
-    });
+    })
+  ) { };
 
-  agent = callPackage cmk-agent-ctl { };
-
-  waitmax-build =
+  waitmax = callPackage (
     { stdenv, ... }:
     stdenv.mkDerivation {
       pname = "waitmax";
       inherit version src;
+
+      strictDeps = true;
+      __structuredAttrs = true;
 
       buildPhase = ''
         runHook preBuild
@@ -170,7 +171,7 @@ let
       meta = {
         mainProgram = "waitmax";
 
-        inherit (agent.meta)
+        inherit (cmk-agent-ctl.meta)
           description
           platforms
           homepage
@@ -179,26 +180,32 @@ let
           maintainers
           ;
       };
-    };
-
-  waitmax = callPackage waitmax-build { };
+    }
+  ) { };
 in
 stdenv.mkDerivation {
   pname = "checkmk-agent";
   inherit version src;
 
+  strictDeps = true;
+  __structuredAttrs = true;
+
   nativeBuildInputs = [ makeWrapper ];
 
-  buildPhase = ''
-    runHook preBuild
+  buildInputs = [ bash ];
 
-    mkdir -p $out/lib/systemd/system
+  dontBuild = true;
+
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p $out/bin $out/lib/systemd/system
 
     for bin in agents/{*.linux,mk-job}; do
-        install -D -m 0555 "$bin" "$out/bin/$(basename $bin .linux)"
+      install -D -m 0555 "$bin" "$out/bin/$(basename $bin .linux)"
     done
 
-    install -D -m 0555 ${lib.getExe agent} "$out/bin"
+    install -D -m 0555 ${lib.getExe cmk-agent-ctl} "$out/bin"
     install -D -m 0555 ${lib.getExe waitmax} "$out/bin"
 
     ${lib.strings.optionalString postfixSupport ''
@@ -212,7 +219,6 @@ stdenv.mkDerivation {
         --replace-quiet /usr/bin/check_mk_caching_agent $out/bin/check_mk_caching_agent \
         --replace-quiet /usr/bin/cmk-agent-ctl $out/bin/cmk-agent-ctl \
         --replace-quiet /usr/bin/mk-job $out/bin/mk-job
-
     done
 
     wrapProgram $out/bin/cmk-agent-ctl \
@@ -281,8 +287,8 @@ stdenv.mkDerivation {
         )
       }:$out/bin
 
-    runHook postBuild
+    runHook postInstall
   '';
 
-  inherit (agent) meta;
+  inherit (cmk-agent-ctl) meta;
 }
