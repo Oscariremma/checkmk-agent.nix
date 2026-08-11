@@ -181,13 +181,13 @@ in
           map (p: {
             name = "/var/lib/check_mk_agent/lib/local/${name p}";
             value."L+" = linkEntry p;
-          }) cfg.plugins
+          }) cfg.local
         );
         "20-checkmk-local-async" = builtins.listToAttrs (
           map (p: {
             name = "/var/lib/check_mk_agent/lib/local/${toString p.interval}/${name p.package}";
             value."L+" = linkEntry p.package;
-          }) cfg.plugins-async
+          }) cfg.local-async
         );
       };
 
