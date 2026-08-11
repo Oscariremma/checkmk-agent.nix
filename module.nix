@@ -36,6 +36,7 @@ in
           };
         in
         {
+          "/var/log/check_mk_agent".d = cfg;
           "/var/lib/check_mk_agent".d = cfg;
           "/var/lib/check_mk_agent/spool".d = cfg;
           "/etc/check_mk".d = cfg;
