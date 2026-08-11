@@ -157,13 +157,13 @@ in
 
       tmpfiles.settings = {
         "10-checkmk" = {
+          "/etc/check_mk".d = dirPerm;
           "/var/log/check_mk_agent".d = dirPerm;
           "/var/lib/check_mk_agent".d = dirPerm;
           "/var/lib/check_mk_agent/spool".d = dirPerm;
           "/var/lib/check_mk_agent/lib".d = dirPerm;
           "/var/lib/check_mk_agent/lib/plugins".d = dirPerm;
           "/var/lib/check_mk_agent/lib/local".d = dirPerm;
-          "/etc/check_mk".d = dirPerm;
         };
         "20-checkmk-plugins" = builtins.listToAttrs (
           map (p: {

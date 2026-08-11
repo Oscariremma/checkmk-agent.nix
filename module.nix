@@ -36,10 +36,10 @@ in
           };
         in
         {
+          "/etc/check_mk".d = cfg;
           "/var/log/check_mk_agent".d = cfg;
           "/var/lib/check_mk_agent".d = cfg;
           "/var/lib/check_mk_agent/spool".d = cfg;
-          "/etc/check_mk".d = cfg;
         };
 
       services = {
