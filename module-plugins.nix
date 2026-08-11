@@ -165,6 +165,18 @@ in
           "/var/lib/check_mk_agent/lib/plugins".d = dirPerm;
           "/var/lib/check_mk_agent/lib/local".d = dirPerm;
         };
+        "15-checkmk-plugins-async-dirs" = builtins.listToAttrs (
+          map (p: {
+            name = "/var/lib/check_mk_agent/lib/plugins/${toString p.interval}";
+            value.d = dirPerm;
+          }) cfg.plugins-async
+        );
+        "15-checkmk-local-async-dirs" = builtins.listToAttrs (
+          map (p: {
+            name = "/var/lib/check_mk_agent/lib/local/${toString p.interval}";
+            value.d = dirPerm;
+          }) cfg.local-async
+        );
         "20-checkmk-plugins" = builtins.listToAttrs (
           map (p: {
             name = "/var/lib/check_mk_agent/lib/plugins/${name p}";
