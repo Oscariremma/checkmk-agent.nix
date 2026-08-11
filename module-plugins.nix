@@ -80,14 +80,12 @@ in
       example = [
         {
           interval = 600;
-          package = (
-            pkgs.writeShellApplication {
-              name = "netstat";
-              runtimeInputs = [ pkgs.unixtools.netstat ];
-              text = builtins.readFile "${config.services.checkmk-agent.package.src}/agents/plugins/netstat.linux";
-              bashOptions = [ "errexit" ];
-            }
-          );
+          package = pkgs.writeShellApplication {
+            name = "netstat";
+            runtimeInputs = [ pkgs.unixtools.netstat ];
+            text = builtins.readFile "${config.services.checkmk-agent.package.src}/agents/plugins/netstat.linux";
+            bashOptions = [ "errexit" ];
+          };
         }
       ];
 
