@@ -38,6 +38,7 @@
           pkgs.deadnix
           pkgs.nixfmt
           pkgs.statix
+          pkgs.nix-output-monitor
         ];
       };
     };
