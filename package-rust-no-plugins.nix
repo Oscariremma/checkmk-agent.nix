@@ -210,8 +210,8 @@ stdenv.mkDerivation {
       --set MK_BIN $out \
       --set MK_TMPDIR /tmp \
       --set MK_CONFDIR /etc/check_mk \
-      --set MK_VARDIR /var/lib/check_mk_agent \
       --set MK_LOGDIR /var/log/check_mk_agent \
+      --set MK_VARDIR /var/lib/check_mk_agent \
       --set MK_LIBDIR /var/lib/check_mk_agent/lib \
       --set PATH ${
         lib.makeBinPath (
