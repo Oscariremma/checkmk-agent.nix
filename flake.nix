@@ -29,6 +29,29 @@
         default = checkmk-agent;
         checkmk-agent = pkgs.callPackage ./package.nix { };
         checkmk-agent-from-source = pkgs.callPackage ./package-rust.nix { };
+        checkmk-agent-check-w-plugins = pkgs.callPackage ./package-rust-check.nix {
+          plugins = [
+            {
+              interval = 1;
+              package = pkgs.writeShellApplication {
+                name = "smart";
+                runtimeInputs = [ pkgs.smartmontools ];
+                text = builtins.readFile "${
+                  self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent-from-source.src
+                }/agents/plugins/smart";
+                bashOptions = [ "errexit" ];
+              };
+            }
+            (pkgs.writeShellApplication {
+              name = "netstat";
+              runtimeInputs = [ pkgs.unixtools.netstat ];
+              text = builtins.readFile "${
+                self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent-from-source.src
+              }/agents/plugins/netstat.linux";
+              bashOptions = [ "errexit" ];
+            })
+          ];
+        };
         checkmk-agent-no-plugins = pkgs.callPackage ./package-rust-no-plugins.nix { };
       };
 
