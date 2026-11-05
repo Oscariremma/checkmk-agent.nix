@@ -1,5 +1,6 @@
 {
   fetchurl,
+  callPackage,
   rpmextract,
   stdenv,
   makeWrapper,
@@ -11,11 +12,13 @@
   # output appended to the output of the agent. Plugins define their own
   # sections and must output headers with '<<<' and '>>>'
   plugins ? [ ],
+  plugins-async ? [ ],
   # derivations for `local`:
   # All executables in LOCALDIR will by executables and their
   # output inserted into the section <<<local>>>. Please
   # refer to online documentation for details about local checks.
   local ? [ ],
+  local-async ? [ ],
   # deps for actual checkmk-agent script
   systemd, # section_systemd
   procps, # section_ps and mkjob
@@ -67,25 +70,15 @@ let
   patch = "-1";
   version = major + patch;
 
-  # generate commands to copy all binaries from `packages` into `out`
-  copyBinaries =
-    packages: out:
-    lib.strings.concatMapStringsSep "\n" (p: ''cp ${lib.attrsets.getBin p}/* "${out}"'') packages;
-
-  # equivalent of packages plugins/local scripts
-  lib_dir = stdenv.mkDerivation {
-    pname = "checkmk-agent-lib";
-    inherit version;
-
-    dontUnpack = true;
-    dontBuild = true;
-
-    installPhase = ''
-      mkdir -p "$out/plugins" "$out/local"
-      ${copyBinaries plugins "$out/plugins"}
-      ${copyBinaries local "$out/local"}
-    '';
+  agentLibDir = callPackage ./package-checks.nix {
+    inherit
+      plugins
+      plugins-async
+      local
+      local-async
+      ;
   };
+
 in
 stdenv.mkDerivation {
   pname = "checkmk-agent";
@@ -178,7 +171,7 @@ stdenv.mkDerivation {
       --set MK_CONFDIR /etc/check_mk \
       --set MK_LOGDIR /var/log/check_mk_agent \
       --set MK_VARDIR /var/lib/check_mk_agent \
-      --set MK_LIBDIR ${toString lib_dir} \
+      --set MK_LIBDIR ${toString agentLibDir} \
       --set PATH ${
         lib.makeBinPath (
           [
@@ -216,6 +209,8 @@ stdenv.mkDerivation {
         )
       }:$out/bin
   '';
+
+  passthru = { inherit agentLibDir; };
 
   meta = {
     description = "compat build of packaged checkmk agent";

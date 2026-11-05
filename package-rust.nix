@@ -4,7 +4,6 @@
   fetchFromGitHub,
   makeWrapper,
   callPackage,
-  linkFarm,
 
   # Derivations for `plugins`:
   # All executables in PLUGINSDIR will simply be executed and their
@@ -70,35 +69,14 @@ let
     hash = "sha256-Ai7g15D4fia8jQ5phlgFcCGRCN/Nt6kdTls576NVmJw=";
   };
 
-  executableName = p: p.meta.mainProgram or (lib.getName p);
-
-  mkChecksDirectory =
-    name: checks: asyncChecks:
-    linkFarm name (
-      map (p: {
-        name = executableName p;
-        path = lib.getExe p;
-      }) checks
-      ++ map (
-        p:
-        assert builtins.isInt p.interval && p.interval > 0;
-        {
-          name = "${toString p.interval}/${executableName p.package}";
-          path = lib.getExe p.package;
-        }
-      ) asyncChecks
-    );
-
-  agentLibDir = linkFarm "checkmk-agent-lib" [
-    {
-      name = "plugins";
-      path = mkChecksDirectory "checkmk-plugins" plugins plugins-async;
-    }
-    {
-      name = "local";
-      path = mkChecksDirectory "checkmk-local" local local-async;
-    }
-  ];
+  agentLibDir = callPackage ./package-checks.nix {
+    inherit
+      plugins
+      plugins-async
+      local
+      local-async
+      ;
+  };
 
   cmk-agent-ctl = callPackage (
     {
