@@ -3,7 +3,7 @@ let
   inherit (pkgs) lib;
   probePackage = lib.makeOverridable (args: pkgs.hello // { featureArgs = args; }) { };
 
-  evaluate =
+  evaluateConfig =
     module: settings:
     (import (pkgs.path + "/nixos/lib/eval-config.nix") {
       system = pkgs.stdenv.hostPlatform.system;
@@ -15,7 +15,10 @@ let
         }
         settings
       ];
-    }).config.services.checkmk-agent.package.featureArgs;
+    }).config;
+
+  evaluate =
+    module: settings: (evaluateConfig module settings).services.checkmk-agent.package.featureArgs;
 
   automaticFlags = [
     "zfsSupport"
@@ -133,8 +136,61 @@ let
       !noLvm.lvmSupport && initrdLvm.lvmSupport && initrdZfs.zfsSupport && ntpd.ntpdSupport
     ) "Initrd support and ntpd configuration must be detected";
     true;
+  asyncConfiguration =
+    serviceOptions:
+    evaluateConfig self.nixosModules.default {
+      services.checkmk-agent = {
+        enable = true;
+        package = lib.mkForce self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent-from-source;
+      }
+      // serviceOptions;
+    };
+  plugin = {
+    interval = 10;
+    package = pkgs.hello;
+  };
+  defaultLoop = asyncConfiguration { };
+  shortPlugin = asyncConfiguration { plugins-async = [ plugin ]; };
+  shortLocal = asyncConfiguration { local-async = [ plugin ]; };
+  matchingLoop = asyncConfiguration {
+    plugins-async = [ plugin ];
+    asyncLoopInterval = 10;
+  };
+  fasterLoop = asyncConfiguration {
+    local-async = [ plugin ];
+    asyncLoopInterval = 5;
+  };
+  disabledAgent = asyncConfiguration {
+    enable = false;
+    plugins-async = [ plugin ];
+  };
+  packageChecks = asyncConfiguration {
+    package = lib.mkForce (
+      self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent-from-source.override {
+        plugins-async = [ plugin ];
+      }
+    );
+  };
+  hasIntervalWarning =
+    config: lib.any (lib.hasInfix "services.checkmk-agent.asyncLoopInterval") config.warnings;
 in
 assert checkModule self.nixosModules.default;
+assert lib.assertMsg (
+  defaultLoop.services.checkmk-agent.asyncLoopInterval == 60
+  && defaultLoop.systemd.services.check-mk-agent-async.environment.MK_LOOP_INTERVAL == "60"
+  && shortPlugin.systemd.services.check-mk-agent-async.environment.MK_LOOP_INTERVAL == "60"
+  && matchingLoop.systemd.services.check-mk-agent-async.environment.MK_LOOP_INTERVAL == "10"
+) "The daemon loop must be explicit, defaulting to 60 seconds";
+assert lib.assertMsg (
+  hasIntervalWarning shortPlugin && hasIntervalWarning shortLocal && hasIntervalWarning packageChecks
+) "Checks shorter than the loop must warn, including preconfigured package checks";
+assert lib.assertMsg (
+  !hasIntervalWarning defaultLoop
+  && !hasIntervalWarning matchingLoop
+  && !hasIntervalWarning fasterLoop
+  && !hasIntervalWarning disabledAgent
+) "Absent checks, matching or longer check intervals, and disabled agents must not warn";
+
 pkgs.runCommand "checkmk-feature-options-test" { } ''
   touch "$out"
 ''

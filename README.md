@@ -96,6 +96,11 @@ Replace the `my*` values with your check packages. Each package contributes its
 The module configures the agent package with a Nix store directory containing
 the selected checks. No plugin directories are created under `/var/lib`.
 
+The async daemon loop defaults to 60 seconds. Set
+`services.checkmk-agent.asyncLoopInterval` explicitly for a different polling
+interval. A warning is emitted if an async check requests a shorter interval
+than the daemon loop.
+
 ## Optional checks
 
 The agent itself is a portable bash script.

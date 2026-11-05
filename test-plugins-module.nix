@@ -30,6 +30,7 @@ in
 
       services.checkmk-agent = {
         enable = true;
+        asyncLoopInterval = 2;
         plugins = [ plugin ];
         plugins-async = [
           {
@@ -78,6 +79,7 @@ in
 
   testScript = ''
     import json
+    import re
 
     def configuration():
         return json.loads(server.succeed("cat /etc/checkmk-test.json"))
@@ -99,14 +101,24 @@ in
     server.wait_for_unit("multi-user.target")
     server.wait_for_unit("check-mk-agent.socket")
     server.wait_for_unit("cmk-agent-ctl-daemon.service")
+    server.wait_for_unit("check-mk-agent-async.service")
     base_system = server.succeed("readlink -f /run/current-system").strip()
     initial = configuration()
     check_layout(2)
 
     assert "inoperational" not in server.succeed("cmk-agent-ctl status")
-    server.wait_until_succeeds("cmk-agent-ctl dump | grep -F '<<<test_async_plugin'")
-    server.wait_until_succeeds("cmk-agent-ctl dump | grep -F 'asynchronous local check'")
-    dump = server.succeed("cmk-agent-ctl dump")
+    server.wait_until_succeeds(
+        "cmk-agent-ctl dump > /tmp/checkmk-dump && "
+        "grep -q '^<<<test_async_plugin:cached(' /tmp/checkmk-dump && "
+        "grep -q '^cached.*test_async_local.*asynchronous local check$' /tmp/checkmk-dump"
+    )
+    dump = server.succeed("cat /tmp/checkmk-dump")
+    assert re.search(r"(?m)^<<<test_async_plugin:cached\(\d+,2\)>>>$", dump)
+    assert re.search(r'(?m)^cached\(\d+,2\) 0 "test_async_local" - asynchronous local check$', dump)
+    for name in ["plugins_test-async-plugin", "local_test-async-local"]:
+        cache = f"/var/lib/check_mk_agent/cache/{name}.cache"
+        previous = server.succeed(f"stat -c %Y {cache}").strip()
+        server.wait_until_succeeds(f'test "$(stat -c %Y {cache})" -gt {previous}', timeout=30)
     assert "<<<check_mk>>>" in dump
     assert "<<<test_plugin>>>" in dump
     assert '0 "test_local" - synchronous local check' in dump

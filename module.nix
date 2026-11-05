@@ -81,6 +81,11 @@ in
 {
   options.services.checkmk-agent = features // {
     enable = lib.mkEnableOption "checkmk agent";
+    asyncLoopInterval = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 60;
+      description = "Interval in seconds between asynchronous agent passes.";
+    };
     package = lib.mkOption {
       type = lib.types.package;
       default = package;
@@ -209,6 +214,13 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    warnings =
+      lib.optional
+        (lib.any (interval: interval < cfg.asyncLoopInterval) (
+          cfg.package.agentLibDir.asyncCheckIntervals or [ ]
+        ))
+        "Some asynchronous Checkmk check intervals are shorter than services.checkmk-agent.asyncLoopInterval (${toString cfg.asyncLoopInterval} seconds). Their caches can only refresh when the daemon runs.";
+
     users = {
       users.cmk-agent = {
         packages = [ cfg.package ];
@@ -233,6 +245,11 @@ in
 
       services = {
         "check-mk-agent@".enable = true;
+        check-mk-agent-async = {
+          enable = true;
+          wantedBy = [ "multi-user.target" ];
+          environment.MK_LOOP_INTERVAL = toString cfg.asyncLoopInterval;
+        };
         cmk-agent-ctl-daemon = {
           enable = true;
           wantedBy = [ "multi-user.target" ];

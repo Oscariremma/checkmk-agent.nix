@@ -9,6 +9,8 @@
 let
   executableName = p: p.meta.mainProgram or (lib.getName p);
 
+  asyncCheckIntervals = map (check: check.interval) (plugins-async ++ local-async);
+
   mkChecksDirectory =
     name: checks: asyncChecks:
     linkFarm name (
@@ -26,7 +28,7 @@ let
       ) asyncChecks
     );
 in
-linkFarm "checkmk-agent-lib" [
+(linkFarm "checkmk-agent-lib" [
   {
     name = "plugins";
     path = mkChecksDirectory "checkmk-plugins" plugins plugins-async;
@@ -35,4 +37,7 @@ linkFarm "checkmk-agent-lib" [
     name = "local";
     path = mkChecksDirectory "checkmk-local" local local-async;
   }
-]
+]).overrideAttrs
+  {
+    passthru = { inherit asyncCheckIntervals; };
+  }
