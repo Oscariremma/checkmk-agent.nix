@@ -62,12 +62,12 @@
   ntp,
 }:
 let
-  version = "2.5.0p4";
+  version = "2.5.0p17";
   src = fetchFromGitHub {
     owner = "Checkmk";
     repo = "checkmk";
     tag = "v${version}";
-    hash = "sha256-mjyBwiuEboglxFi8OSBl0hw4ZnwDOtYO73APGm54zQI=";
+    hash = "sha256-Ai7g15D4fia8jQ5phlgFcCGRCN/Nt6kdTls576NVmJw=";
   };
 
   executableName = p: p.meta.mainProgram or (lib.getName p);
@@ -116,9 +116,11 @@ let
       strictDeps = true;
       __structuredAttrs = true;
 
-      sourceRoot = "${src.name}/requirements/rust/host";
-
-      cargoHash = "sha256-BHRRp2ZVvD/+9ldaSyibDHn3Yxhco5ZgWpGaRjHSgOQ=";
+      cargoHash = "sha256-9ugqTJQ0MgLTVMXmrbGMeWnMgoyKGEjE3S1xOawxDKk=";
+      cargoBuildFlags = [
+        "-p"
+        "cmk-agent-ctl"
+      ];
 
       nativeBuildInputs = [
         pkg-config
@@ -131,6 +133,7 @@ let
       doCheck = false;
 
       env = {
+        CMK_VERSION = version;
         OPENSSL_DIR = "${openssl.dev}";
         OPENSSL_LIB_DIR = "${openssl.out}/lib";
         OPENSSL_INCLUDE_DIR = "${openssl.dev}/include";

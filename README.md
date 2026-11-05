@@ -1,5 +1,5 @@
 ![nixpkgs version](https://img.shields.io/badge/nixpkgs-26.05-5277C3?logo=nixos)
-![checkmk version](https://img.shields.io/badge/CheckMK-2.5.0p4-15D1A0?logo=checkmk)
+![checkmk version](https://img.shields.io/badge/CheckMK-2.5.0p17-15D1A0?logo=checkmk)
 
 # CheckMK agent
 
@@ -8,7 +8,7 @@ It supports most common checks and also has optional supports for advanced check
 
 The provided outputs are:
 
-- `packages.x86_64-linux.checkmk-agent`: nix package for checkmk agent, at the time of writing for version `2.3.0p26`
+- `packages.x86_64-linux.checkmk-agent`: nix package for checkmk agent, version `2.5.0p17`
 - (wip) `nixosModules.default`: NixOS module for using checkmk-agent as service
 
 The only supported platform is `x86_64-linux`.
