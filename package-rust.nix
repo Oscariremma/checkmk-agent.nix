@@ -4,18 +4,21 @@
   fetchFromGitHub,
   makeWrapper,
   callPackage,
+  linkFarm,
 
   # Derivations for `plugins`:
   # All executables in PLUGINSDIR will simply be executed and their
   # output appended to the output of the agent. Plugins define their own
   # sections and must output headers with '<<<' and '>>>'
   plugins ? [ ],
+  plugins-async ? [ ],
 
   # Derivations for `local`:
   # All executables in LOCALDIR will by executables and their
   # output inserted into the section <<<local>>>. Please
   # refer to online documentation for details about local checks.
   local ? [ ],
+  local-async ? [ ],
 
   bash,
   systemd,
@@ -67,31 +70,35 @@ let
     hash = "sha256-mjyBwiuEboglxFi8OSBl0hw4ZnwDOtYO73APGm54zQI=";
   };
 
-  # Generate commands to symlink all binaries from `packages` (toplevel as well as ones located in `bin`) into `out`
-  linkBinaries =
-    packages: out:
-    lib.strings.concatMapStringsSep "\n" (
-      p: ''ln -s ${lib.attrsets.getBin p}/bin/* "${out}"''
-    ) packages;
+  executableName = p: p.meta.mainProgram or (lib.getName p);
 
-  # Equivalent of packages plugins/local scripts
-  lib_dir = stdenv.mkDerivation {
-    pname = "checkmk-agent-lib";
-    inherit version;
+  mkChecksDirectory =
+    name: checks: asyncChecks:
+    linkFarm name (
+      map (p: {
+        name = executableName p;
+        path = lib.getExe p;
+      }) checks
+      ++ map (
+        p:
+        assert builtins.isInt p.interval && p.interval > 0;
+        {
+          name = "${toString p.interval}/${executableName p.package}";
+          path = lib.getExe p.package;
+        }
+      ) asyncChecks
+    );
 
-    dontUnpack = true;
-    dontBuild = true;
-
-    installPhase = ''
-      runHook preInstall
-
-      mkdir -p "$out/plugins" "$out/local"
-      ${linkBinaries plugins "$out/plugins"}
-      ${linkBinaries local "$out/local"}
-
-      runHook postInstall
-    '';
-  };
+  agentLibDir = linkFarm "checkmk-agent-lib" [
+    {
+      name = "plugins";
+      path = mkChecksDirectory "checkmk-plugins" plugins plugins-async;
+    }
+    {
+      name = "local";
+      path = mkChecksDirectory "checkmk-local" local local-async;
+    }
+  ];
 
   cmk-agent-ctl = callPackage (
     {
@@ -250,7 +257,7 @@ stdenv.mkDerivation {
       --set MK_CONFDIR /etc/check_mk \
       --set MK_LOGDIR /var/log/check_mk_agent \
       --set MK_VARDIR /var/lib/check_mk_agent \
-      --set MK_LIBDIR ${toString lib_dir} \
+      --set MK_LIBDIR ${toString agentLibDir} \
       --set PATH ${
         lib.makeBinPath (
           [
@@ -290,6 +297,10 @@ stdenv.mkDerivation {
 
     runHook postInstall
   '';
+
+  passthru = {
+    inherit cmk-agent-ctl agentLibDir;
+  };
 
   inherit (cmk-agent-ctl) meta;
 }

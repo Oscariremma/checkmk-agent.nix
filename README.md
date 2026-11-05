@@ -64,6 +64,38 @@ You should also open the TCP port `6556`, if you want to operate the agent in pu
 
 [^1]: We use the raw edition, as such you cannot use `cmk-agent-ctl register-new`
 
+## Plugins and local checks
+
+Use `cmk_agent.nixosModules.plugins` to configure plugins and local checks:
+
+```nix
+{ pkgs, ... }: {
+  imports = [ cmk_agent.nixosModules.plugins ];
+
+  services.checkmk-agent = {
+    enable = true;
+    plugins = [ myPlugin ];
+    plugins-async = [
+      { package = mySlowPlugin; interval = 300; }
+    ];
+    local = [
+      (pkgs.writeShellScriptBin "example-local" ''
+        echo '0 "Example" - Local check is working'
+      '')
+    ];
+    local-async = [
+      { package = mySlowLocalCheck; interval = 600; }
+    ];
+  };
+}
+```
+
+Replace the `my*` values with your check packages. Each package contributes its
+`lib.getExe` executable. Async intervals are positive integers in seconds.
+
+The module configures the agent package with a Nix store directory containing
+the selected checks. No plugin directories are created under `/var/lib`.
+
 ## Optional checks
 
 The agent itself is a portable bash script.

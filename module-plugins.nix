@@ -12,15 +12,6 @@ let
     mode = "700";
   };
 
-  linkEntry =
-    pkg:
-    dirPerm
-    // {
-      argument = lib.getExe pkg;
-    };
-
-  name = p: p.meta.mainProgram or p.name;
-
   cfg = config.services.checkmk-agent;
 in
 {
@@ -29,6 +20,16 @@ in
     package = lib.mkOption {
       type = lib.types.package;
       default = package;
+      apply =
+        p:
+        p.override {
+          inherit (cfg)
+            plugins
+            plugins-async
+            local
+            local-async
+            ;
+        };
       description = "agent derivation";
     };
 
@@ -161,46 +162,7 @@ in
           "/var/log/check_mk_agent".d = dirPerm;
           "/var/lib/check_mk_agent".d = dirPerm;
           "/var/lib/check_mk_agent/spool".d = dirPerm;
-          "/var/lib/check_mk_agent/lib".d = dirPerm;
-          "/var/lib/check_mk_agent/lib/plugins".d = dirPerm;
-          "/var/lib/check_mk_agent/lib/local".d = dirPerm;
         };
-        "15-checkmk-plugins-async-dirs" = builtins.listToAttrs (
-          map (p: {
-            name = "/var/lib/check_mk_agent/lib/plugins/${toString p.interval}";
-            value.d = dirPerm;
-          }) cfg.plugins-async
-        );
-        "15-checkmk-local-async-dirs" = builtins.listToAttrs (
-          map (p: {
-            name = "/var/lib/check_mk_agent/lib/local/${toString p.interval}";
-            value.d = dirPerm;
-          }) cfg.local-async
-        );
-        "20-checkmk-plugins" = builtins.listToAttrs (
-          map (p: {
-            name = "/var/lib/check_mk_agent/lib/plugins/${name p}";
-            value."L+" = linkEntry p;
-          }) cfg.plugins
-        );
-        "20-checkmk-plugins-async" = builtins.listToAttrs (
-          map (p: {
-            name = "/var/lib/check_mk_agent/lib/plugins/${toString p.interval}/${name p.package}";
-            value."L+" = linkEntry p.package;
-          }) cfg.plugins-async
-        );
-        "20-checkmk-local" = builtins.listToAttrs (
-          map (p: {
-            name = "/var/lib/check_mk_agent/lib/local/${name p}";
-            value."L+" = linkEntry p;
-          }) cfg.local
-        );
-        "20-checkmk-local-async" = builtins.listToAttrs (
-          map (p: {
-            name = "/var/lib/check_mk_agent/lib/local/${toString p.interval}/${name p.package}";
-            value."L+" = linkEntry p.package;
-          }) cfg.local-async
-        );
       };
 
       services = {
