@@ -47,7 +47,7 @@ If you also want to use `cmk-agent-ctl`, add:
 
 ```nix
 { config, ... }: {
-  environment.systemPackages = [ config.services.cmk_agent.package ];
+  environment.systemPackages = [ config.services.checkmk-agent.package ];
 }
 ```
 
