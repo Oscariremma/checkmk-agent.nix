@@ -35,7 +35,7 @@ It should also work on other platforms however we currently don't have any testi
           modules = [
             cmk_agent.nixosModules.default
             ({ ... }: {
-              services.cmk_agent.enable = true;
+              services.checkmk-agent.enable = true;
             })
           ];
       };
@@ -110,7 +110,7 @@ If a binary is not found it will skip the check.
 This allows the nix derivation to offer opt-in checks for some services to reduce the derivation size for most installations.
 Most common checks, like the systemd-based checks, are always included to make integration easier.
 
-Feature flags are available under `services.checkmk-agent`. ZFS, LVM, multipath, Open vSwitch, Chrony, Postfix, Varnish, and ntpd monitoring default to the host's configured support or service state. 
+Feature flags are available under `services.checkmk-agent`. ZFS, LVM, multipath, Open vSwitch, Chrony, Postfix, Varnish, and ntpd monitoring default to the host's configured support or service state.
 Checks use the host's selected tool packages where configurable. LVM support is enabled by
 default in NixOS, even on hosts without logical volumes.
 
