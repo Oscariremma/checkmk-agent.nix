@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31.11.3
+        with:
+          enable_kvm: false
+      - name: Check formatting
+        run: nix develop -c nixfmt --check ./*.nix
+      - name: Check unused bindings
+        run: nix develop -c deadnix --fail .
+      - name: Check Nix patterns
+        run: nix develop -c statix check .
+
+  check:
+    name: Build and test
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31.11.3
+        with:
+          enable_kvm: true
+          extra_nix_config: |
+            system-features = nixos-test benchmark big-parallel kvm
+            max-jobs = 2
+            cores = 2
+      - name: Check KVM access
+        run: test -r /dev/kvm && test -w /dev/kvm
+      - name: Build packages
+        run: nix build --no-link -L .#checkmk-agent .#checkmk-agent-from-source
+      - name: Run flake checks
+        run: nix flake check -L
