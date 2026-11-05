@@ -66,11 +66,11 @@ You should also open the TCP port `6556`, if you want to operate the agent in pu
 
 ## Plugins and local checks
 
-Use `cmk_agent.nixosModules.plugins` to configure plugins and local checks:
+Plugins and local checks can run synchronously or at a configured interval:
 
 ```nix
 { pkgs, ... }: {
-  imports = [ cmk_agent.nixosModules.plugins ];
+  imports = [ cmk_agent.nixosModules.default ];
 
   services.checkmk-agent = {
     enable = true;

@@ -26,7 +26,7 @@ in
   nodes.server =
     { config, ... }:
     {
-      imports = [ self.nixosModules.plugins ];
+      imports = [ self.nixosModules.default ];
 
       services.checkmk-agent = {
         enable = true;

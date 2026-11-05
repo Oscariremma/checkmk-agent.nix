@@ -13,9 +13,6 @@
     {
       nixosModules = {
         default = import ./module.nix { package = self.packages.${system}.checkmk-agent-from-source; };
-        plugins = import ./module-plugins.nix {
-          package = self.packages.${system}.checkmk-agent-from-source;
-        };
       };
 
       checks.${system} = {
