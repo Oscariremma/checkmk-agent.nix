@@ -12,13 +12,12 @@
     in
     {
       nixosModules = {
-        default = import ./module.nix { package = self.packages.${system}.checkmk-agent-from-source; };
+        default = import ./module.nix { package = self.packages.${system}.checkmk-agent; };
       };
 
       checks.${system} = {
         features = import ./test-features.nix { inherit pkgs self; };
         package = import ./test.nix { inherit pkgs self; };
-        package-module = import ./test-module.nix { inherit pkgs self; };
         plugins = import ./test-plugins.nix { inherit self pkgs; };
         plugins-module = import ./test-plugins-module.nix { inherit self pkgs; };
       };
@@ -26,12 +25,10 @@
       packages.${system} = rec {
         default = checkmk-agent;
         checkmk-agent = pkgs.callPackage ./package.nix { };
-        checkmk-agent-from-source = pkgs.callPackage ./package-rust.nix { };
       };
 
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = [
-          pkgs.rpmextract
           pkgs.deadnix
           pkgs.nixfmt
           pkgs.statix

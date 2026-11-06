@@ -1,54 +1,50 @@
 {
-  fetchurl,
-  callPackage,
-  rpmextract,
   stdenv,
-  makeWrapper,
-  gzip,
   lib,
-  breakpointHook,
-  # derivations for `plugins`:
+  fetchFromGitHub,
+  makeWrapper,
+  callPackage,
+  linkFarm,
+
+  # Derivations for `plugins`:
   # All executables in PLUGINSDIR will simply be executed and their
   # output appended to the output of the agent. Plugins define their own
   # sections and must output headers with '<<<' and '>>>'
   plugins ? [ ],
   plugins-async ? [ ],
-  # derivations for `local`:
+
+  # Derivations for `local`:
   # All executables in LOCALDIR will by executables and their
   # output inserted into the section <<<local>>>. Please
   # refer to online documentation for details about local checks.
   local ? [ ],
   local-async ? [ ],
-  # deps for actual checkmk-agent script
-  systemd, # section_systemd
-  procps, # section_ps and mkjob
-  util-linux, # section_df and check_mk_caching_agent (flock)
-  gnugrep, # section_mem and many others
-  perl, # section_fileinfo
-  coreutils, # everything
-  findutils, # postfix among others
-  iproute2, # section_lnx_if and section_tcp
-  # section_lnx_if
+
+  bash,
+  systemd,
+  procps,
+  util-linux,
+  gnugrep,
+  perl,
+  coreutils,
+  findutils,
+  iproute2,
   lnxSupport ? true,
   ethtool,
-  # section_multipathing
   multipathSupport ? false,
   multipath-tools,
-  # section_checkmk
   gnused,
   python3,
-  # encryption handlers
   encryptionSupport ? true,
   openssl,
   gawk,
-  # optional stuff
   zfsSupport ? false,
   zfs,
   lvmSupport ? false,
   lvm2,
   ovsSupport ? false,
   openvswitch,
-  chronySupport ? true,
+  chronySupport ? false,
   chrony,
   ipmiSupport ? false,
   ipmitool,
@@ -66,83 +62,181 @@
   ntp,
 }:
 let
-  major = "2.5.0p17";
-  patch = "-1";
-  version = major + patch;
-
-  agentLibDir = callPackage ./package-checks.nix {
-    inherit
-      plugins
-      plugins-async
-      local
-      local-async
-      ;
+  version = "2.5.0p17";
+  src = fetchFromGitHub {
+    owner = "Checkmk";
+    repo = "checkmk";
+    tag = "v${version}";
+    hash = "sha256-Ai7g15D4fia8jQ5phlgFcCGRCN/Nt6kdTls576NVmJw=";
   };
 
+  executableName = p: p.meta.mainProgram or (lib.getName p);
+
+  asyncCheckIntervals = map (check: check.interval) (plugins-async ++ local-async);
+
+  mkChecksDirectory =
+    name: checks: asyncChecks:
+    linkFarm name (
+      map (p: {
+        name = executableName p;
+        path = lib.getExe p;
+      }) checks
+      ++ map (
+        p:
+        assert builtins.isInt p.interval && p.interval > 0;
+        {
+          name = "${toString p.interval}/${executableName p.package}";
+          path = lib.getExe p.package;
+        }
+      ) asyncChecks
+    );
+
+  agentLibDir =
+    (linkFarm "checkmk-agent-lib" [
+      {
+        name = "plugins";
+        path = mkChecksDirectory "checkmk-plugins" plugins plugins-async;
+      }
+      {
+        name = "local";
+        path = mkChecksDirectory "checkmk-local" local local-async;
+      }
+    ]).overrideAttrs
+      {
+        passthru = { inherit asyncCheckIntervals; };
+      };
+
+  cmk-agent-ctl = callPackage (
+    {
+      lib,
+      rustPlatform,
+      pkg-config,
+      perl,
+      openssl,
+      ...
+    }:
+    rustPlatform.buildRustPackage (finalAttrs: rec {
+      pname = "cmk-agent-ctl";
+      inherit version src;
+
+      strictDeps = true;
+      __structuredAttrs = true;
+
+      cargoHash = "sha256-9ugqTJQ0MgLTVMXmrbGMeWnMgoyKGEjE3S1xOawxDKk=";
+      cargoBuildFlags = [
+        "-p"
+        "cmk-agent-ctl"
+      ];
+
+      nativeBuildInputs = [
+        pkg-config
+        perl
+        rustPlatform.bindgenHook
+      ];
+
+      buildInputs = [ openssl ];
+
+      doCheck = false;
+
+      env = {
+        CMK_VERSION = version;
+        OPENSSL_DIR = "${openssl.dev}";
+        OPENSSL_LIB_DIR = "${openssl.out}/lib";
+        OPENSSL_INCLUDE_DIR = "${openssl.dev}/include";
+        PKG_CONFIG_ALLOW_CROSS = "1";
+      };
+
+      meta = {
+        description = "Checkmk - Best-in-class infrastructure & application monitoring";
+        homepage = "https://github.com/Checkmk/checkmk";
+        changelog = "https://github.com/Checkmk/checkmk/blob/${finalAttrs.src.rev}/CHANGES";
+        license = lib.licenses.gpl2;
+        platforms = lib.platforms.linux;
+        maintainers = with lib.maintainers; [ weriomat ];
+        mainProgram = "cmk-agent-ctl";
+      };
+    })
+  ) { };
+
+  waitmax = callPackage (
+    { stdenv, ... }:
+    stdenv.mkDerivation {
+      pname = "waitmax";
+      inherit version src;
+
+      strictDeps = true;
+      __structuredAttrs = true;
+
+      buildPhase = ''
+        runHook preBuild
+
+        $CC -s -Wall -Wextra -O3 -o waitmax agents/waitmax.c
+
+        runHook postBuild
+      '';
+
+      installPhase = ''
+        runHook preInstall
+
+        mkdir -p $out/bin
+        install -D -m 0555 waitmax $out/bin
+
+        runHook postInstall
+      '';
+
+      meta = {
+        mainProgram = "waitmax";
+
+        inherit (cmk-agent-ctl.meta)
+          description
+          platforms
+          homepage
+          changelog
+          license
+          maintainers
+          ;
+      };
+    }
+  ) { };
 in
 stdenv.mkDerivation {
   pname = "checkmk-agent";
-  inherit version;
+  inherit version src;
 
-  # fetch packaged agent, this allows us access to agent + systemd unit files in one archive
-  # refer to https://checkmk.com/download?platform=cmk&distribution=redhat&release=el9&edition=cre
-  src = fetchurl {
-    url = "https://download.checkmk.com/checkmk/${major}/check-mk-community-${major}-el9-38.x86_64.rpm";
-    hash = "sha256-zJcF4LHGZ2q+zmbhryAQ0YjmsZWuV7POHgXNmH7g72k=";
-  };
+  strictDeps = true;
+  __structuredAttrs = true;
 
-  # we need dpkg for unpacking the debian version
-  nativeBuildInputs = [
-    breakpointHook
-    rpmextract
-    gzip
-    makeWrapper
-  ];
+  nativeBuildInputs = [ makeWrapper ];
+
+  buildInputs = [ bash ];
 
   dontBuild = true;
-
-  # unpack rpm into distinct source root (`src`)
-  unpackCmd = ''
-    mkdir tmp
-    cd tmp
-    rpmextract $curSrc
-    mv opt/omd/versions/${major}.community/share/check_mk/agents/check-mk-agent-${version}.noarch.rpm ..
-    cd ..
-    rm -rf tmp
-
-    mkdir src
-    cd src
-    rpmextract ../check-mk-agent-${version}.noarch.rpm
-    gunzip var/lib/cmk-agent/cmk-agent-ctl.gz
-    cd ..
-  '';
-  sourceRoot = "src";
 
   installPhase = ''
     runHook preInstall
 
     mkdir -p $out/bin $out/lib/systemd/system
-    cp usr/bin/* var/lib/cmk-agent/cmk-agent-ctl $out/bin
-    chmod +x $out/bin/cmk-agent-ctl
 
-    ${lib.strings.optionalString postfixSupport ''
-      substitute "$out/bin/check_mk_agent" "$out/bin/check_mk_agent" \
-        --replace /usr/sbin/ssmtp ${postfix}
-    ''}
-
-    for cfg in var/lib/cmk-agent/scripts/super-server/0_systemd/*.{service,socket,fallback}; do
-      substitute "$cfg" "$out/lib/systemd/system/$(basename $cfg)" \
-        --replace /usr/bin/waitmax $out/bin/waitmax \
-        --replace /usr/bin/check_mk_agent $out/bin/check_mk_agent \
-        --replace /usr/bin/check_mk_caching_agent $out/bin/check_mk_caching_agent \
-        --replace /usr/bin/cmk-agent-ctl $out/bin/cmk-agent-ctl \
-        --replace /usr/bin/mk-job $out/bin/mk-job
+    for bin in agents/{*.linux,mk-job}; do
+      install -D -m 0555 "$bin" "$out/bin/$(basename $bin .linux)"
     done
 
-    runHook postInstall
-  '';
+    install -D -m 0555 ${lib.getExe cmk-agent-ctl} "$out/bin"
+    install -D -m 0555 ${lib.getExe waitmax} "$out/bin"
 
-  preFixup = ''
+    ${lib.strings.optionalString postfixSupport ''
+      substituteInPlace "$out/bin/check_mk_agent" --replace-fail /usr/sbin/ssmtp ${postfix}
+    ''}
+
+    for cfg in agents/scripts/super-server/0_systemd/*.{service,socket,fallback}; do
+      substitute "$cfg" "$out/lib/systemd/system/$(basename $cfg)" \
+        --replace-quiet /usr/bin/waitmax $out/bin/waitmax \
+        --replace-quiet /usr/bin/check_mk_agent $out/bin/check_mk_agent \
+        --replace-quiet /usr/bin/check_mk_caching_agent $out/bin/check_mk_caching_agent \
+        --replace-quiet /usr/bin/cmk-agent-ctl $out/bin/cmk-agent-ctl \
+        --replace-quiet /usr/bin/mk-job $out/bin/mk-job
+    done
+
     wrapProgram $out/bin/cmk-agent-ctl \
       --set PATH $out/bin \
       --set MK_TMPDIR /tmp \
@@ -150,13 +244,13 @@ stdenv.mkDerivation {
       --set MK_VARDIR /var/lib/check_mk_agent
 
     wrapProgram $out/bin/mk-job \
-    --set PATH ${
-      lib.makeBinPath [
-        coreutils
-        gnugrep
-        procps
-      ]
-    }:$out/bin
+      --set PATH ${
+        lib.makeBinPath [
+          coreutils
+          gnugrep
+          procps
+        ]
+      }:$out/bin
 
     wrapProgram $out/bin/check_mk_caching_agent \
       --set PATH ${
@@ -165,6 +259,7 @@ stdenv.mkDerivation {
           util-linux
         ]
       }:$out/bin
+
     wrapProgram $out/bin/check_mk_agent \
       --set MK_BIN $out \
       --set MK_TMPDIR /tmp \
@@ -187,34 +282,34 @@ stdenv.mkDerivation {
             util-linux
             iproute2
           ]
-          ++ (lib.optionals encryptionSupport [ openssl ])
-          ++ (lib.optionals ipmiSupport [
+          ++ lib.optional encryptionSupport openssl
+          ++ lib.optionals ipmiSupport [
             ipmitool
             freeipmi
-          ])
-          ++ (lib.optionals ovsSupport [ openvswitch ])
-          ++ (lib.optionals varnishSupport [ varnish ])
-          ++ (lib.optionals postfixSupport [ postfix ])
-          ++ (lib.optionals megaraidSupport [
+          ]
+          ++ lib.optional ovsSupport openvswitch
+          ++ lib.optional varnishSupport varnish
+          ++ lib.optional postfixSupport postfix
+          ++ lib.optionals megaraidSupport [
             megacli
             storcli
-          ])
-          ++ (lib.optionals ntpdSupport [ ntp ])
-          ++ (lib.optionals dmraidSupport [ dmraid ])
-          ++ (lib.optionals lnxSupport [ ethtool ])
-          ++ (lib.optionals lvmSupport [ lvm2 ])
-          ++ (lib.optionals chronySupport [ chrony ])
-          ++ (lib.optionals multipathSupport [ multipath-tools ])
-          ++ (lib.optionals zfsSupport [ zfs ])
+          ]
+          ++ lib.optional ntpdSupport ntp
+          ++ lib.optional dmraidSupport dmraid
+          ++ lib.optional lnxSupport ethtool
+          ++ lib.optional lvmSupport lvm2
+          ++ lib.optional chronySupport chrony
+          ++ lib.optional multipathSupport multipath-tools
+          ++ lib.optional zfsSupport zfs
         )
       }:$out/bin
+
+    runHook postInstall
   '';
 
-  passthru = { inherit agentLibDir; };
-
-  meta = {
-    description = "compat build of packaged checkmk agent";
-    homepage = "https://mon.zibint.hlrn.de/HPC/check_mk";
-    maintainers = [ ];
+  passthru = {
+    inherit cmk-agent-ctl agentLibDir;
   };
+
+  inherit (cmk-agent-ctl) meta;
 }

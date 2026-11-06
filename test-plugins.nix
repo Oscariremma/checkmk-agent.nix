@@ -17,7 +17,7 @@ in
       nodes.server =
         { config, pkgs, ... }:
         let
-          checkmk-agent = self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent-from-source;
+          checkmk-agent = self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent;
         in
         {
           imports = [ self.nixosModules.default ];

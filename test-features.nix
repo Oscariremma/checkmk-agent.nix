@@ -141,7 +141,7 @@ let
     evaluateConfig self.nixosModules.default {
       services.checkmk-agent = {
         enable = true;
-        package = lib.mkForce self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent-from-source;
+        package = lib.mkForce self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent;
       }
       // serviceOptions;
     };
@@ -166,7 +166,7 @@ let
   };
   packageChecks = asyncConfiguration {
     package = lib.mkForce (
-      self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent-from-source.override {
+      self.packages.${pkgs.stdenv.hostPlatform.system}.checkmk-agent.override {
         plugins-async = [ plugin ];
       }
     );

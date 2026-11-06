@@ -49,7 +49,7 @@ jobs:
             cores = 2
       - name: Check KVM access
         run: test -r /dev/kvm && test -w /dev/kvm
-      - name: Build packages
-        run: nix build --no-link -L .#checkmk-agent .#checkmk-agent-from-source
+      - name: Build package
+        run: nix build --no-link -L .#checkmk-agent
       - name: Run flake checks
         run: nix flake check -L

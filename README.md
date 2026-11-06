@@ -3,7 +3,7 @@
 
 # CheckMK agent
 
-This flake provides a package for using the _packaged checkmk agent_ via Nix.
+This flake builds the Checkmk agent and its Rust controller from source with Nix.
 It supports most common checks and also has optional supports for advanced checks, like MegaRaid or OVS.
 
 The provided outputs are:
@@ -141,7 +141,7 @@ _(untested)_: checks that have yet to be tested on a machine.
 
 ## CI
 
-GitHub Actions runs formatting, lint, package builds, and the flake checks,
+GitHub Actions runs formatting, lint, the package build, and the flake checks,
 including the NixOS VM tests. The GitLab configuration is retained for upstream
 compatibility.
 
@@ -151,6 +151,6 @@ Run the same checks locally with KVM available:
 nix develop -c nixfmt --check ./*.nix
 nix develop -c deadnix --fail .
 nix develop -c statix check .
-nix build --no-link -L .#checkmk-agent .#checkmk-agent-from-source
+nix build --no-link -L .#checkmk-agent
 nix flake check -L
 ```
