@@ -37,8 +37,8 @@ Add the flake to your NixOS configuration:
 }
 ```
 
-For pull mode, allow incoming TCP connections on port `6556`. Add either
-an interface-specific rule or a rule for all interfaces.
+For pull mode, allow incoming TCP connections on port `6556`.
+Add either an interface-specific rule or a rule for all interfaces.
 
 On a specific interface:
 
@@ -78,10 +78,66 @@ Use `plugins` and `local` for synchronous checks, or `plugins-async` and
 }
 ```
 
-Each package contributes its `lib.getExe` executable. Checks are assembled in
-the Nix store. Async intervals are positive integers in seconds; the daemon loop
+Async intervals are positive integers in seconds; the daemon loop
 is controlled by `services.checkmk-agent.asyncLoopInterval` (default: `60`). A
 warning is emitted when a check interval is shorter than the daemon loop.
+
+### Included plugin packages
+
+Plugins are available under `legacyPackages.x86_64-linux.checkmkAgentPlugins`.
+
+| Plugin                        | Monitoring                        |
+| ----------------------------- | --------------------------------- |
+| [`smart-posix`](#smart-posix) | Disk SMART data via smartmontools |
+| [`docker`](#docker)           | Docker hosts and containers       |
+| [`nut`](#nut)                 | UPS data via Network UPS Tools    |
+
+For example, add this to the `modules` list in the flake above:
+
+```nix
+let
+  plugins = checkmk-agent.legacyPackages.x86_64-linux.checkmkAgentPlugins;
+in {
+  services.checkmk-agent.plugins = [ plugins.nut ];
+  services.checkmk-agent.plugins-async = [
+    { package = plugins.smart-posix; interval = 300; }
+    {
+      interval = 300;
+      package = plugins.docker.override {
+        containerId = "name";
+        skipSections = [ "docker_node_images" "docker_container_agent" ];
+      };
+    }
+  ];
+}
+```
+
+#### SMART POSIX
+
+Collects disk health and SMART data using smartmontools. Needs access to the monitored disk devices.
+
+#### Docker
+
+Monitors Docker hosts and containers, including container status, resource usage,
+and image inventory. Container data is sent as piggyback data for separate
+container hosts in Checkmk. Requires access to the Docker API, usually through
+the local Docker socket.
+
+Docker accepts the following package overrides, matching the
+[upstream configuration](https://github.com/Checkmk/checkmk/blob/v2.5.0p17/agents/cfg_examples/docker.cfg):
+
+| Argument                     | Default                        | Purpose                                                           |
+| ---------------------------- | ------------------------------ | ----------------------------------------------------------------- |
+| `baseUrl`                    | `"unix://var/run/docker.sock"` | Docker API endpoint                                               |
+| `containerId`                | `"short"`                      | Piggyback host identifier: `short`, `long`, `name`, or `combined` |
+| `skipSections`               | `[ ]`                          | List of section names to omit                                     |
+| `persistPeriodNodeDiskUsage` | `90`                           | Seconds to retain disk usage data as a fallback                   |
+
+#### NUT
+
+Monitors UPS status, battery charge, runtime, and other measurements through
+Network UPS Tools. Discovers NUT servers from `/etc/nut/upsmon.conf` and also queries localhost.
+Its [server-side extension](https://github.com/virus2500/checkmk_nut) is **required** to provide the parser and service checks for the agent's `nut` section and must be installed on your Checkmk server.
 
 ## Optional features
 
@@ -103,7 +159,7 @@ CI checks formatting, lint, the package build, and NixOS VM tests. To run these
 locally, with KVM available:
 
 ```console
-nix develop -c nixfmt --check ./*.nix
+nix develop -c nixfmt --check ./*.nix ./plugins/*.nix
 nix develop -c deadnix --fail .
 nix develop -c statix check .
 nix build --no-link -L .#checkmk-agent
