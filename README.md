@@ -1,151 +1,106 @@
 ![nixpkgs version](https://img.shields.io/badge/nixpkgs-26.05-5277C3?logo=nixos)
-![checkmk version](https://img.shields.io/badge/CheckMK-2.5.0p17-15D1A0?logo=checkmk)
+![Checkmk version](https://img.shields.io/badge/CheckMK-2.5.0p17-15D1A0?logo=checkmk)
 
-# CheckMK agent
+# Checkmk agent for NixOS
 
-This flake builds the Checkmk agent and its Rust controller from source with Nix.
-It supports most common checks and also has optional supports for advanced checks, like MegaRaid or OVS.
+A Nix flake that builds the Checkmk agent and its Rust controller from source,
+with a NixOS service module, plugins, and local checks. Currently supports
+`x86_64-linux`.
 
-The provided outputs are:
+## Usage
 
-- `packages.x86_64-linux.checkmk-agent`: nix package for checkmk agent, version `2.5.0p17`
-- (wip) `nixosModules.default`: NixOS module for using checkmk-agent as service
-
-The only supported platform is `x86_64-linux`.
-It should also work on other platforms however we currently don't have any testing setup for this.
-
-## Use with `mon.hlrn.de`
-
-> A prerequisite is a priviledged user account on `mon.zibint.hlrn.de`.
-
-1. Include the module and enable in your system config:
+Add the flake to your NixOS configuration:
 
 ```nix
 {
   inputs = {
-    [... your inputs]
-    cmk_agent = {
-      url = "git+ssh://git@git.zib.de/hpc-s/checkmk-agent.nix";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    checkmk-agent = {
+      url = "github:Oscariremma/checkmk-agent.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { ..., cmk_agent, ... }: {
-      nixosConfigurations.your-system = nixpkgs.lib.nixosSystem {
-          modules = [
-            cmk_agent.nixosModules.default
-            ({ ... }: {
-              services.checkmk-agent.enable = true;
-            })
-          ];
-      };
-  }
-}
-```
-
-If you also want to use `cmk-agent-ctl`, add:
-
-```nix
-{ config, ... }: {
-  environment.systemPackages = [ config.services.checkmk-agent.package ];
-}
-```
-
-You should also open the TCP port `6556`, if you want to operate the agent in pull mode (this is what you usually want):
-
-```nix
-{ config, ... }: {
-  networking.firewall.interfaces.<interface>.allowedTCPPorts = [ 6556 ];
-}
-```
-
-2. Follow the steps in [the wiki after create host](https://wiki.zib.de/confluence/display/NHRADMIN/checkMK#checkMK-createhost).
-   For example (for `adm`): `cmk-agent-ctl register --server mon.adm.hlrn.de --site HPC --user agent_registration --hostname $(hostname -f)`
-
-[^1]: We use the raw edition, as such you cannot use `cmk-agent-ctl register-new`
-
-## Plugins and local checks
-
-Plugins and local checks can run synchronously or at a configured interval:
-
-```nix
-{ pkgs, ... }: {
-  imports = [ cmk_agent.nixosModules.default ];
-
-  services.checkmk-agent = {
-    enable = true;
-    plugins = [ myPlugin ];
-    plugins-async = [
-      { package = mySlowPlugin; interval = 300; }
-    ];
-    local = [
-      (pkgs.writeShellScriptBin "example-local" ''
-        echo '0 "Example" - Local check is working'
-      '')
-    ];
-    local-async = [
-      { package = mySlowLocalCheck; interval = 600; }
-    ];
+  outputs = { nixpkgs, checkmk-agent, ... }: {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+        checkmk-agent.nixosModules.default
+        ({ config, ... }: {
+          services.checkmk-agent.enable = true;
+          environment.systemPackages = [ config.services.checkmk-agent.package ];
+        })
+      ];
+    };
   };
 }
 ```
 
-Replace the `my*` values with your check packages. Each package contributes its
-`lib.getExe` executable. Async intervals are positive integers in seconds.
+For pull mode, allow incoming TCP connections on port `6556`. Add either
+an interface-specific rule or a rule for all interfaces.
 
-The module configures the agent package with a Nix store directory containing
-the selected checks. No plugin directories are created under `/var/lib`.
+On a specific interface:
 
-The async daemon loop defaults to 60 seconds. Set
-`services.checkmk-agent.asyncLoopInterval` explicitly for a different polling
-interval. A warning is emitted if an async check requests a shorter interval
-than the daemon loop.
+```nix
+networking.firewall.interfaces."eth0".allowedTCPPorts = [ 6556 ];
+```
 
-## Optional checks
+Replace `eth0` with the monitored host's interface facing your Checkmk server.
 
-The agent itself is a portable bash script.
-It checks the `$PATH` at runtime for uncommon dependencies, like `postfix`, and, if found, evaluates them.
-If a binary is not found it will skip the check.
+Or on all interfaces:
 
-This allows the nix derivation to offer opt-in checks for some services to reduce the derivation size for most installations.
-Most common checks, like the systemd-based checks, are always included to make integration easier.
+```nix
+networking.firewall.allowedTCPPorts = [ 6556 ];
+```
 
-Feature flags are available under `services.checkmk-agent`. ZFS, LVM, multipath, Open vSwitch, Chrony, Postfix, Varnish, and ntpd monitoring default to the host's configured support or service state.
-Checks use the host's selected tool packages where configurable. LVM support is enabled by
-default in NixOS, even on hosts without logical volumes.
+Register the agent with your Checkmk server using `cmk-agent-ctl register`;
+see the [Linux agent documentation](https://docs.checkmk.com/latest/en/agent_linux.html).
 
-Override any default explicitly, for example:
+The standalone package is available as `packages.x86_64-linux.checkmk-agent`
+and as the default package.
+
+## Plugins and local checks
+
+Use `plugins` and `local` for synchronous checks, or `plugins-async` and
+`local-async` for cached asynchronous checks. For example:
+
+```nix
+{ pkgs, ... }: {
+  services.checkmk-agent.local-async = [
+    {
+      interval = 300;
+      package = pkgs.writeShellScriptBin "example-local" ''
+        echo '0 "Example" - Local check is working'
+      '';
+    }
+  ];
+}
+```
+
+Each package contributes its `lib.getExe` executable. Checks are assembled in
+the Nix store. Async intervals are positive integers in seconds; the daemon loop
+is controlled by `services.checkmk-agent.asyncLoopInterval` (default: `60`). A
+warning is emitted when a check interval is shorter than the daemon loop.
+
+## Optional features
+
+Monitoring for ZFS, LVM, multipath, Open vSwitch, Chrony, Postfix, Varnish, and ntpd
+defaults to the host's configured support or services. LVM support is enabled by
+default in NixOS, even without logical volumes. IPMI, dmraid, and MegaRAID are
+opt-in. Override feature defaults through the service:
 
 ```nix
 services.checkmk-agent.zfsSupport = false;
 services.checkmk-agent.ipmiSupport = true;
 ```
 
-The package-level options and their standalone defaults are:
+See [module.nix](module.nix) for the available service options.
 
-- `lnxSupport` (default: `true`): state of network interfaces of Linux hosts
-- `multipathSupport` (default: `false`): state of [multipathd](https://en.wikipedia.org/wiki/Linux_DM_Multipath)
-- `encryptionSupport` (default: `true`): encryption of agent messages
-- `zfsSupport` (default: `false`): monitoring of zpools and ZFS datasets
-- (untested)`lvmSupport` (default: `false`): monitoring of lvm
-- (untested)`ovsSupport` (default: `false`): monitor [openvswitch](https://www.openvswitch.org/)
-- (untested)`chronySupport` (default: `false`): monitor [`chrony`](https://chrony-project.org/)
-- `ipmiSupport` (default: `false`): monitor IPMI with `freeipmi` and `ipmitool`
-- (untested)`dmraidSupport` (default: `false`): monitor [device-mapper RAID](https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/dm-raid.html)
-- `megaraidSupport` (default: `false`): monitor MegaRaid with `storcli` and `megacli`
-- `postfixSupport` (default: `true`): monitor [postfix](https://www.postfix.org/postqueue.1.html) mailqueues
-- (untested)`varnishSupport` (default: `false`): monitor [varnish](https://varnish-cache.org/)
-- (untested) `ntpdSupport` (default: `false`): monitor [ntpd](https://en.wikipedia.org/wiki/Ntpd)
+## Development
 
-_(untested)_: checks that have yet to be tested on a machine.
-
-## CI
-
-GitHub Actions runs formatting, lint, the package build, and the flake checks,
-including the NixOS VM tests. The GitLab configuration is retained for upstream
-compatibility.
-
-Run the same checks locally with KVM available:
+CI checks formatting, lint, the package build, and NixOS VM tests. To run these
+locally, with KVM available:
 
 ```console
 nix develop -c nixfmt --check ./*.nix
@@ -154,3 +109,7 @@ nix develop -c statix check .
 nix build --no-link -L .#checkmk-agent
 nix flake check -L
 ```
+
+## Credits
+
+Forked from [ZIB's checkmk-agent.nix](https://git.zib.de/hpc-s-public/checkmk-agent.nix).
