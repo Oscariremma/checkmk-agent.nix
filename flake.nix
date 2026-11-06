@@ -16,12 +16,12 @@
       };
 
       checks.${system} = {
-        plugin-packages = import ./test-plugin-packages.nix { inherit pkgs self; };
-        docker-plugin = import ./test-docker-plugin.nix { inherit pkgs self; };
-        features = import ./test-features.nix { inherit pkgs self; };
-        package = import ./test.nix { inherit pkgs self; };
-        plugins = import ./test-plugins.nix { inherit self pkgs; };
-        plugins-module = import ./test-plugins-module.nix { inherit self pkgs; };
+        plugin-packages = import ./tests/plugin-packages.nix { inherit pkgs self; };
+        docker-plugin = import ./tests/docker-plugin.nix { inherit pkgs self; };
+        features = import ./tests/features.nix { inherit pkgs self; };
+        package = import ./tests/agent.nix { inherit pkgs self; };
+        plugins = import ./tests/plugins-package.nix { inherit self pkgs; };
+        plugins-module = import ./tests/plugins-module.nix { inherit self pkgs; };
       };
 
       packages.${system} = rec {

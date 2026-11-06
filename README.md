@@ -159,7 +159,7 @@ CI checks formatting, lint, the package build, and NixOS VM tests. To run these
 locally, with KVM available:
 
 ```console
-nix develop -c nixfmt --check ./*.nix ./plugins/*.nix
+nix develop -c nixfmt --check ./*.nix ./plugins/*.nix ./tests/*.nix
 nix develop -c deadnix --fail .
 nix develop -c statix check .
 nix build --no-link -L .#checkmk-agent
