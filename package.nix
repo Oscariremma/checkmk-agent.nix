@@ -62,12 +62,12 @@
   ntp,
 }:
 let
-  version = "2.5.0p17";
+  version = "2.5.0p19";
   src = fetchFromGitHub {
     owner = "Checkmk";
     repo = "checkmk";
     tag = "v${version}";
-    hash = "sha256-Ai7g15D4fia8jQ5phlgFcCGRCN/Nt6kdTls576NVmJw=";
+    hash = "sha256-dawph7ESQHmTEULBfYuORu5AIgyclEc8h6tAca1oD2A=";
   };
 
   executableName = p: p.meta.mainProgram or (lib.getName p);
@@ -122,7 +122,7 @@ let
       strictDeps = true;
       __structuredAttrs = true;
 
-      cargoHash = "sha256-9ugqTJQ0MgLTVMXmrbGMeWnMgoyKGEjE3S1xOawxDKk=";
+      cargoHash = "sha256-XBS5XyN2bcrEv9/gMbQ0holEGjYOGoUkshebMcoSBwU=";
       cargoBuildFlags = [
         "-p"
         "cmk-agent-ctl"
