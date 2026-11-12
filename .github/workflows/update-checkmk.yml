@@ -1,0 +1,66 @@
+name: Update Checkmk
+
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: update-checkmk
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31.11.3
+        with:
+          enable_kvm: false
+          extra_nix_config: |
+            max-jobs = 2
+            cores = 2
+      - name: Update version and hashes
+        run: nix develop -c ./scripts/update-checkmk
+      - name: Read updated version
+        id: version
+        run: echo "version=$(nix eval --raw .#checkmk-agent.version)" >> "$GITHUB_OUTPUT"
+      - name: Create or update pull request
+        id: pr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: automation/update-checkmk
+          delete-branch: true
+          add-paths: package.nix
+          commit-message: 'chore: update Checkmk to ${{ steps.version.outputs.version }}'
+          title: 'chore: update Checkmk to ${{ steps.version.outputs.version }}'
+          body: |
+            Updates Checkmk and its source and Cargo dependency hashes.
+            The SMART and Docker plugins follow the agent version.
+
+            Auto-merge is enabled; required CI checks must pass before merging.
+      # Dispatch explicitly because GITHUB_TOKEN-created PRs need approval to run CI.
+      - name: Run CI on the update branch
+        if: steps.pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_BRANCH: ${{ steps.pr.outputs.pull-request-branch }}
+        run: gh workflow run ci.yml --ref "$PR_BRANCH"
+      - name: Enable auto-merge
+        if: steps.pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
+          PR_HEAD: ${{ steps.pr.outputs.pull-request-head-sha }}
+        run: gh pr merge "$PR_NUMBER" --auto --squash --match-head-commit "$PR_HEAD"

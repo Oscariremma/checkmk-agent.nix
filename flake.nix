@@ -43,6 +43,7 @@
         buildInputs = [
           pkgs.deadnix
           pkgs.nixfmt
+          pkgs.nix-update
           pkgs.statix
           pkgs.nix-output-monitor
         ];

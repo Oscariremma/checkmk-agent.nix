@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+nix-update --flake checkmk-agent --subpackage cmk-agent-ctl \
+  --version-regex '^v?([0-9]+\.[0-9]+\.[0-9]+(?:p[0-9]+)?)$' "$@"
+nixfmt package.nix
