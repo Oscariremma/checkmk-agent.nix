@@ -152,7 +152,12 @@ let
         changelog = "https://github.com/Checkmk/checkmk/blob/${finalAttrs.src.rev}/CHANGES";
         license = lib.licenses.gpl2;
         platforms = lib.platforms.linux;
-        maintainers = with lib.maintainers; [ weriomat ];
+        maintainers = [
+          {
+            name = "Oscar Eriksson";
+            github = "Oscariremma";
+          }
+        ];
         mainProgram = "cmk-agent-ctl";
       };
     })
