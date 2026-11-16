@@ -1,3 +1,6 @@
+# Set UPDATE_PR_TOKEN to a fine-grained PAT scoped to this repository with
+# Contents and Pull requests read/write permissions; renew it before expiry.
+# Enable squash auto-merge and require Lint and Build and test on the default branch.
 name: Update Checkmk
 
 on:
@@ -8,7 +11,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  actions: write
 
 concurrency:
   group: update-checkmk
@@ -23,6 +25,14 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
+      - name: Check update token
+        env:
+          UPDATE_PR_TOKEN: ${{ secrets.UPDATE_PR_TOKEN }}
+        run: |
+          if [ -z "$UPDATE_PR_TOKEN" ]; then
+            echo '::error::Set the UPDATE_PR_TOKEN repository secret. See setup comments in update-checkmk.yml.'
+            exit 1
+          fi
       - uses: cachix/install-nix-action@v31.11.3
         with:
           enable_kvm: false
@@ -38,6 +48,7 @@ jobs:
         id: pr
         uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ secrets.UPDATE_PR_TOKEN }}
           branch: automation/update-checkmk
           delete-branch: true
           add-paths: package.nix
@@ -46,16 +57,6 @@ jobs:
           body: |
             Updates Checkmk and its source and Cargo dependency hashes.
             The SMART and Docker plugins follow the agent version.
-
-            Auto-merge is enabled; required CI checks must pass before merging.
-      # Dispatch explicitly because GITHUB_TOKEN-created PRs need approval to run CI.
-      - name: Run CI on the update branch
-        if: steps.pr.outputs.pull-request-number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          PR_BRANCH: ${{ steps.pr.outputs.pull-request-branch }}
-        run: gh workflow run ci.yml --ref "$PR_BRANCH"
       - name: Enable auto-merge
         if: steps.pr.outputs.pull-request-number != ''
         env:
