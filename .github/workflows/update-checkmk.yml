@@ -51,11 +51,13 @@ jobs:
           token: ${{ secrets.UPDATE_PR_TOKEN }}
           branch: automation/update-checkmk
           delete-branch: true
-          add-paths: package.nix
+          add-paths: |
+            package.nix
+            README.md
           commit-message: 'chore: update Checkmk to ${{ steps.version.outputs.version }}'
           title: 'chore: update Checkmk to ${{ steps.version.outputs.version }}'
           body: |
-            Updates Checkmk and its source and Cargo dependency hashes.
+            Updates Checkmk, its source and Cargo dependency hashes, and the README badge.
             The SMART and Docker plugins follow the agent version.
       - name: Enable auto-merge
         if: steps.pr.outputs.pull-request-number != ''
