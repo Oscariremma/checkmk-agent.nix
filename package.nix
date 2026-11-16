@@ -62,12 +62,12 @@
   ntp,
 }:
 let
-  version = "2.5.0p19";
+  version = "2.5.0p20";
   src = fetchFromGitHub {
     owner = "Checkmk";
     repo = "checkmk";
     tag = "v${version}";
-    hash = "sha256-dawph7ESQHmTEULBfYuORu5AIgyclEc8h6tAca1oD2A=";
+    hash = "sha256-O5Va1Ty+h0c+FKC0pADwEuyEMCU3kS5pR2C++sJc0qY=";
   };
 
   executableName = p: p.meta.mainProgram or (lib.getName p);
